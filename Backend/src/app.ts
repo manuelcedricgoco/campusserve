@@ -1,4 +1,6 @@
 import express, { Router } from 'express';
+import path from 'node:path';
+import { existsSync } from 'node:fs';
 import cors from 'cors';
 import helmet from 'helmet';
 import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
@@ -11,6 +13,7 @@ import type { StorageAdapter } from './integrations/storage/storage.js';
 import type { PaymentProviderRegistry } from './integrations/payment-providers/registry.js';
 import type { AiProvider } from './integrations/ai-providers/provider.js';
 import { authenticate, errorHandler, notFoundRoute, requestId } from './middleware/core.js';
+import { AppError } from './http/errors.js';
 import { registerModules } from './modules/index.js';
 
 export interface AppDeps {
@@ -36,7 +39,28 @@ export function createApp(deps: AppDeps) {
     redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-sandbox-signature"]'],
     autoLogging: env.NODE_ENV !== 'test',
   }));
-  app.use(helmet());
+  const staticDir = env.SERVE_STATIC_DIR ? path.resolve(env.SERVE_STATIC_DIR) : null;
+  if (staticDir) {
+    // Serving the website too: allow it to talk to Supabase Auth and load map tiles; everything else stays 'self'.
+    const supabase = env.SUPABASE_URL ?? '';
+    app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org', 'https://*.tile.openstreetmap.org'],
+          connectSrc: ["'self'", supabase, supabase.replace(/^https:/, 'wss:')].filter(Boolean),
+          fontSrc: ["'self'", 'data:'],
+          frameAncestors: ["'none'"],
+          objectSrc: ["'none'"],
+          upgradeInsecureRequests: null,
+        },
+      },
+    }));
+  } else {
+    app.use(helmet());
+  }
   const origins = corsOrigins(env);
   app.use(cors({
     origin: (origin, cb) => cb(null, !origin || origins.includes(origin)),
@@ -73,9 +97,29 @@ export function createApp(deps: AppDeps) {
   const authed = Router();
   authed.use(authenticate(deps.verifyToken, true), limiter(env.RATE_LIMIT_PER_MINUTE));
 
+  // Memory storage (local testing): short-lived signed download links.
+  const memory = deps.storage as Partial<import('./integrations/storage/storage.js').MemoryStorage>;
+  if (typeof memory.readSigned === 'function') {
+    app.get('/api/v1/dev-files/:token', (req, res, next) => {
+      const f = memory.readSigned!(String(req.params.token));
+      if (!f) { next(new AppError(404, 'FILE_NOT_FOUND', 'This link has expired or does not exist.')); return; }
+      res.setHeader('Content-Type', f.contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${f.name.replace(/[^A-Za-z0-9._ -]/g, '_')}"`);
+      res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'");
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.send(f.data);
+    });
+  }
+
   registerModules({ deps, api, authed, publicRouter, webhooks });
   api.use(authed);
   app.use('/api/v1', api);
+
+  if (staticDir && existsSync(path.join(staticDir, 'index.html'))) {
+    app.use(express.static(staticDir, { index: false, maxAge: '1h' }));
+    // Single-page app: any other GET outside /api returns index.html.
+    app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(staticDir, 'index.html')));
+  }
 
   app.use(notFoundRoute);
   app.use(errorHandler(logger));

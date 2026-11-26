@@ -1,7 +1,7 @@
 import { pino } from 'pino';
 import { loadEnv } from './config/env.js';
 import { loadDotEnv } from './config/dotenv.js';
-import { createDatabase } from './db/database.js';
+import { createDatabase, pickDatabaseUrl } from './db/database.js';
 import { createTokenVerifier } from './auth/token-verifier.js';
 import { createStorage } from './integrations/storage/storage.js';
 import { createPaymentRegistry } from './integrations/payment-providers/registry.js';
@@ -9,8 +9,9 @@ import { createAiProvider } from './integrations/ai-providers/provider.js';
 import { createApp } from './app.js';
 
 loadDotEnv();
-const env = loadEnv();
-const logger = pino({ level: env.LOG_LEVEL, redact: ['*.password', '*.token', '*.secret'] });
+const loaded = loadEnv();
+const logger = pino({ level: loaded.LOG_LEVEL, redact: ['*.password', '*.token', '*.secret'] });
+const env = { ...loaded, DATABASE_URL: await pickDatabaseUrl(loaded, (m) => logger.info(m)) };
 const db = createDatabase(env);
 const app = createApp({
   env,
@@ -24,7 +25,10 @@ const app = createApp({
 
 if (env.PAYMENT_SANDBOX) logger.warn('PAYMENT SANDBOX ENABLED: simulated payments only, no money moves.');
 
-const server = app.listen(env.PORT, () => logger.info({ port: env.PORT }, 'CampusServe API listening'));
+const server = app.listen(env.PORT, () => {
+  logger.info({ port: env.PORT }, 'CampusServe API listening');
+  if (env.SERVE_STATIC_DIR) console.log(`\n  CampusServe is running: open http://localhost:${env.PORT}\n`);
+});
 
 let stopping = false;
 async function shutdown(signal: string) {

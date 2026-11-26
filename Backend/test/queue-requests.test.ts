@@ -102,7 +102,11 @@ describe('service requests and private documents', () => {
     const doc = (await t.sql<{ id: string }>(`select id from public.request_documents where request_id = $1`, [requestId]))[0]!;
     expect((await other.get(`/api/v1/requests/${requestId}/documents/${doc.id}/url`)).status).toBe(404);
     const owner = expectStatus(await (await t.as(U.cbam)).get(`/api/v1/requests/${requestId}/documents/${doc.id}/url`), 200).data;
-    expect(owner.url).toMatch(/^memory:\/\//);
+    expect(owner.url).toMatch(/^\/api\/v1\/dev-files\//);
+    const file = await request(t.app).get(owner.url);
+    expect(file.status).toBe(200);
+    expect(file.headers['content-type']).toBe('application/pdf');
+    expect((await request(t.app).get(owner.url.slice(0, -3) + 'xyz')).status).toBe(404);
   });
 
   it('registrar staff process the request; the student is notified', async () => {

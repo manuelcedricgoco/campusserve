@@ -1,3 +1,4 @@
+import { createHmac, randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import type { Env } from '../../config/env.js';
 import { AppError } from '../../http/errors.js';
@@ -34,18 +35,41 @@ export function createStorage(env: Env): StorageAdapter {
 }
 
 /** In-memory storage for tests and local development without Supabase Storage. */
-export function createMemoryStorage(): StorageAdapter & { files: Map<string, { data: Buffer; contentType: string }> } {
+export interface MemoryStorage extends StorageAdapter {
+  files: Map<string, { data: Buffer; contentType: string }>;
+  /** Resolves a signed download token issued by signedUrl (5 minutes), or null. */
+  readSigned(token: string): { data: Buffer; contentType: string; name: string } | null;
+}
+
+/**
+ * In-memory storage for tests and local testing without the Supabase secret key. Files live only until the
+ * server restarts. signedUrl returns a short-lived, HMAC-signed link served by GET /api/v1/dev-files/:token.
+ */
+export function createMemoryStorage(): MemoryStorage {
   const files = new Map<string, { data: Buffer; contentType: string }>();
+  const secret = randomBytes(32);
+  const sign = (payload: string) => createHmac('sha256', secret).update(payload).digest('base64url');
   return {
     files,
+    readSigned(token) {
+      const [payload, sig] = token.split('.');
+      if (!payload || !sig || sign(payload) !== sig) return null;
+      let parsed: { k: string; exp: number };
+      try { parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')); } catch { return null; }
+      if (typeof parsed.k !== 'string' || typeof parsed.exp !== 'number' || parsed.exp < Date.now()) return null;
+      const f = files.get(parsed.k);
+      return f ? { ...f, name: parsed.k.split('/').pop() ?? 'file' } : null;
+    },
     async upload(bucket, path, data, contentType) {
       const key = `${bucket}/${path}`;
       if (files.has(key)) throw new AppError(409, 'FILE_EXISTS', 'A file already exists at this path.');
       files.set(key, { data, contentType });
     },
-    async signedUrl(bucket, path) {
-      if (!files.has(`${bucket}/${path}`)) throw new AppError(404, 'FILE_NOT_FOUND', 'File not found.');
-      return `memory://${bucket}/${path}`;
+    async signedUrl(bucket, path, expiresInSeconds = 300) {
+      const k = `${bucket}/${path}`;
+      if (!files.has(k)) throw new AppError(404, 'FILE_NOT_FOUND', 'File not found.');
+      const payload = Buffer.from(JSON.stringify({ k, exp: Date.now() + expiresInSeconds * 1000 })).toString('base64url');
+      return `/api/v1/dev-files/${payload}.${sign(payload)}`;
     },
     async remove(bucket, path) {
       files.delete(`${bucket}/${path}`);

@@ -146,3 +146,22 @@ describe('key server outage', () => {
     } finally { await ctx.close(); }
   });
 });
+
+describe('serving the built website (single-port mode)', () => {
+  it('serves index.html for app routes, keeps /api as JSON, and allows Supabase in the CSP', async () => {
+    const { mkdtempSync, writeFileSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const dir = mkdtempSync(`${tmpdir()}/cs-static-`);
+    writeFileSync(`${dir}/index.html`, '<!doctype html><title>CampusServe</title>');
+    const ctx = createTestContext({ SERVE_STATIC_DIR: dir });
+    try {
+      const page = await request(ctx.app).get('/student/queue');
+      expect(page.status).toBe(200);
+      expect(page.text).toContain('<title>CampusServe</title>');
+      expect(page.headers['content-security-policy']).toContain('connect-src \'self\' http://localhost:54321');
+      const api = await request(ctx.app).get('/api/v1/nope');
+      expect(api.status).toBe(401);
+      expect((await request(ctx.app).get('/api/v1/health')).body.data.status).toBe('ok');
+    } finally { await ctx.close(); }
+  });
+});

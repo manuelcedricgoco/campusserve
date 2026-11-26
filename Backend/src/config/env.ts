@@ -15,6 +15,12 @@ const schema = z
     // Supabase signs its database certificates with its own CA: download it from the dashboard
     // (Database -> Settings -> SSL configuration) and point this at the file.
     DATABASE_SSL_CA_FILE: z.string().optional(),
+    // Development only: skip certificate verification (refused in production).
+    DATABASE_SSL_VERIFY: bool.default(true),
+    // Optional extra connection strings tried in order when DATABASE_URL does not connect (e.g. pooler hosts).
+    DATABASE_URL_ALTERNATIVES: z.string().optional(),
+    // Optional: serve the built frontend (Frontend/dist) from this server, so one process runs everything.
+    SERVE_STATIC_DIR: z.string().optional(),
     DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
     DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(15000),
 
@@ -56,6 +62,7 @@ const schema = z
     if (env.NODE_ENV === 'production') {
       if (env.PAYMENT_SANDBOX) ctx.addIssue({ code: 'custom', message: 'PAYMENT_SANDBOX must be false in production.' });
       if (env.STORAGE_MODE === 'memory') ctx.addIssue({ code: 'custom', message: 'STORAGE_MODE=memory is not allowed in production.' });
+      if (!env.DATABASE_SSL_VERIFY) ctx.addIssue({ code: 'custom', message: 'DATABASE_SSL_VERIFY must be true in production.' });
     }
     if (env.STORAGE_MODE === 'supabase' && env.NODE_ENV !== 'test' && (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY)) {
       ctx.addIssue({ code: 'custom', message: 'STORAGE_MODE=supabase needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.' });

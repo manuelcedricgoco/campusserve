@@ -33,7 +33,7 @@ export function createDatabase(env: Env): Database {
   const pool = new pg.Pool({
     connectionString: env.DATABASE_URL,
     max: env.DATABASE_POOL_MAX,
-    ssl: env.DATABASE_SSL ? { rejectUnauthorized: true, ...(env.DATABASE_SSL_CA_FILE ? { ca: readFileSync(env.DATABASE_SSL_CA_FILE, 'utf8') } : {}) } : undefined,
+    ssl: env.DATABASE_SSL ? { rejectUnauthorized: env.DATABASE_SSL_VERIFY, ...(env.DATABASE_SSL_CA_FILE ? { ca: readFileSync(env.DATABASE_SSL_CA_FILE, 'utf8') } : {}) } : undefined,
     application_name: 'campusserve-backend',
   });
 
@@ -106,4 +106,33 @@ export async function rpcOne<T = Record<string, unknown>>(c: DbClient, fn: strin
 export async function rpcValue<T = unknown>(c: DbClient, fn: string, args: Record<string, unknown> = {}): Promise<T> {
   const row = await rpcOne<Record<string, unknown>>(c, fn, args);
   return (row ? Object.values(row)[0] : undefined) as T;
+}
+
+/**
+ * Returns the first connection string that actually connects: DATABASE_URL, then DATABASE_URL_ALTERNATIVES
+ * (comma-separated). Lets a local setup list both Supabase pooler hosts without knowing which one applies.
+ */
+export async function pickDatabaseUrl(env: Env, log: (msg: string) => void): Promise<string> {
+  const candidates = [env.DATABASE_URL, ...(env.DATABASE_URL_ALTERNATIVES ?? '').split(',').map((s) => s.trim()).filter(Boolean)];
+  if (candidates.length === 1) return env.DATABASE_URL;
+  let lastError: unknown;
+  for (const url of candidates) {
+    const client = new pg.Client({
+      connectionString: url, connectionTimeoutMillis: 10_000,
+      ssl: env.DATABASE_SSL ? { rejectUnauthorized: env.DATABASE_SSL_VERIFY, ...(env.DATABASE_SSL_CA_FILE ? { ca: readFileSync(env.DATABASE_SSL_CA_FILE, 'utf8') } : {}) } : undefined,
+    });
+    const host = url.replace(/^[^@]*@/, '').replace(/\/.*$/, '');
+    try {
+      await client.connect();
+      await client.query('select 1');
+      await client.end();
+      log(`database: connected via ${host}`);
+      return url;
+    } catch (e) {
+      lastError = e;
+      log(`database: ${host} did not work (${e instanceof Error ? e.message : String(e)})`);
+      await client.end().catch(() => undefined);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('No database connection string worked.');
 }
