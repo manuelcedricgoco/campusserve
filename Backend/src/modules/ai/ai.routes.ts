@@ -4,7 +4,7 @@ import { handler, idParams, optionalText, pagination, send, text } from '../../h
 import { rpc, rpcOne, type DbClient } from '../../db/database.js';
 import { AppError, forbidden, notFound } from '../../http/errors.js';
 import type { ModuleContext } from '../context.js';
-import { elevate, hasAnywhere, hasGlobal, hasOffice, paged, singleFile } from '../shared.js';
+import { elevate, hasAnywhere, hasGlobal, hasOffice, isActiveUser, paged, singleFile } from '../shared.js';
 import { validateUpload } from '../../integrations/storage/storage.js';
 import { mockEmbedding, type SourceChunk } from '../../integrations/ai-providers/provider.js';
 import { processDocument, toVector } from './knowledge.js';
@@ -76,6 +76,7 @@ export function aiModule({ deps, authed, publicRouter }: ModuleContext) {
     const actor = req.actor!;
     const cfg = await config();
     const result = await db.asUser(actor, async (c) => {
+      if (!(await isActiveUser(c))) throw forbidden('Your account is not active yet.');
       const chatSetting = cfg.chat;
       const used = (await c.query(
         `select count(*)::int as n from public.ai_usage_logs where user_id = auth.uid() and feature = 'assistant'

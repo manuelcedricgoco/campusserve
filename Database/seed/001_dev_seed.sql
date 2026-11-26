@@ -226,6 +226,10 @@ select '00000000-0000-0000-0000-000000000000', v.id::uuid, 'authenticated', 'aut
     ('a0000000-0000-4000-8000-000000000024', 'student.cbam@campusserve.test',     'Sample Student CBAM')
   ) as v(id, email, full_name)
 on conflict (id) do nothing;
+
+-- New auth users start inactive (migration 018); the sample accounts are activated explicitly.
+update public.profiles set is_active = true
+ where id in (select id from auth.users where raw_user_meta_data ->> 'campusserve_dev_seed' = 'true');
 -- The on_auth_user_created trigger created a profile and the student role for each.
 
 -- Staff accounts are not students.

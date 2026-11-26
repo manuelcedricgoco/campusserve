@@ -70,6 +70,7 @@ function Shell() {
 
   if (isLoading) return <div className="flex min-h-dvh items-center justify-center"><Spinner label="Loading your account" /></div>;
   if (error || !access) return <div className="mx-auto max-w-lg p-6"><ErrorState error={error ?? new Error('No profile found for this account.')} /></div>;
+  if (!access.profile.is_active) return <PendingActivation email={access.profile.email} onSignOut={signOut} />;
   return <ShellInner access={access} open={open} setOpen={setOpen} unread={Number(unread.data?.meta.unread ?? 0)} signOut={signOut} />;
 }
 
@@ -140,6 +141,18 @@ function ShellInner({ access, open, setOpen, unread, signOut }: { access: Access
         </nav>
       )}
     </div>
+  );
+}
+
+/** New accounts start inactive until an administrator activates them (see migration 018). */
+function PendingActivation({ email, onSignOut }: { email: string; onSignOut: () => Promise<void> }) {
+  return (
+    <main id="main" className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center gap-4 px-4">
+      <Logo />
+      <h1>Your account is not active yet</h1>
+      <p className="text-ink-soft">You are signed in as {email}. CampusServe accounts are activated by the university. Ask the Registrar or SAS to link this account to your student record or position.</p>
+      <div><Button variant="secondary" onClick={() => void onSignOut()}>Sign out</Button></div>
+    </main>
   );
 }
 
