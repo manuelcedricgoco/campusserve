@@ -40,7 +40,9 @@ export const U = {
 } as const;
 
 export function testEnv(overrides: Record<string, string> = {}): Env {
-  return loadEnv({
+  // An override of '' removes that variable (e.g. to test JWKS-only verification).
+  const drop = Object.keys(overrides).filter((k) => overrides[k] === '');
+  const source: Record<string, string> = {
     NODE_ENV: 'test',
     LOG_LEVEL: 'silent',
     DATABASE_URL: TEST_DATABASE_URL,
@@ -53,7 +55,9 @@ export function testEnv(overrides: Record<string, string> = {}): Env {
     RATE_LIMIT_PER_MINUTE: '100000',
     PUBLIC_RATE_LIMIT_PER_MINUTE: '100000',
     ...overrides,
-  });
+  };
+  for (const k of drop) delete source[k];
+  return loadEnv(source);
 }
 
 export async function tokenFor(userId: string, opts: { expiresIn?: string; secret?: string; role?: string; issuer?: string } = {}) {

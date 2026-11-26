@@ -45,7 +45,7 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
     else if (err?.code === 'LIMIT_FILE_SIZE') error = new AppError(413, 'FILE_TOO_LARGE', 'The file is too large.');
     else error = fromDatabaseError(err) ?? new AppError(500, 'INTERNAL_ERROR', 'Something went wrong. Please try again.');
 
-    if (error.status >= 500) logger.error({ err, requestId: req.requestId }, 'request failed');
+    if (error.status >= 500) logger.error({ err: error.internalCause ?? err, requestId: req.requestId }, 'request failed');
     else logger.debug({ code: error.code, requestId: req.requestId }, 'request rejected');
 
     res.status(error.status).json({

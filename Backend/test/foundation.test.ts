@@ -131,3 +131,18 @@ describe('date serialization', () => {
     expect(slots[0].slot_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
+
+describe('key server outage', () => {
+  it('answers 503 AUTH_UNAVAILABLE (not "session expired") when JWKS cannot be fetched', async () => {
+    const { SignJWT, generateKeyPair } = await import('jose');
+    const { privateKey } = await generateKeyPair('ES256');
+    const token = await new SignJWT({ role: 'authenticated' }).setProtectedHeader({ alg: 'ES256', kid: 'k1' }).setSubject(U.bsit1)
+      .setAudience('authenticated').setIssuer('http://127.0.0.1:9/auth/v1').setExpirationTime('5m').sign(privateKey);
+    const ctx = createTestContext({ SUPABASE_URL: 'http://127.0.0.1:9', SUPABASE_JWT_SECRET: '' });
+    try {
+      const r = await request(ctx.app).get('/api/v1/me').set('Authorization', `Bearer ${token}`);
+      expect(r.status).toBe(503);
+      expect(r.body.error.code).toBe('AUTH_UNAVAILABLE');
+    } finally { await ctx.close(); }
+  });
+});

@@ -5,6 +5,8 @@ export class AppError extends Error {
     public readonly code: string,
     message: string,
     public readonly details?: unknown,
+    /** Internal cause, logged on the server and never sent to clients. */
+    public readonly internalCause?: unknown,
   ) {
     super(message);
     this.name = 'AppError';

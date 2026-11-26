@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify, type JWTPayload } from 'jose';
+import { createRemoteJWKSet, decodeProtectedHeader, errors, jwtVerify, type JWTPayload } from 'jose';
 import type { Env } from '../config/env.js';
 import type { Actor } from '../db/database.js';
 import { AppError } from '../http/errors.js';
@@ -29,7 +29,12 @@ export function createTokenVerifier(env: Env): TokenVerifier {
         if (!jwks) throw new Error('No JWKS configured');
         payload = (await jwtVerify(token, jwks, { ...options, algorithms: ['RS256', 'ES256', 'EdDSA'] })).payload;
       }
-    } catch {
+    } catch (e) {
+      // A key-server outage must not look like an expired session: report it as 503 and keep the cause.
+      const tokenProblem = e instanceof errors.JOSEError && !(e instanceof errors.JWKSTimeout);
+      if (!tokenProblem && e instanceof Error && !/tokens are not accepted|No JWKS configured|Invalid Compact JWS|Invalid Token/i.test(e.message)) {
+        throw new AppError(503, 'AUTH_UNAVAILABLE', 'Sign-in could not be checked right now. Please try again shortly.', undefined, e);
+      }
       throw new AppError(401, 'INVALID_TOKEN', 'Your session is invalid or has expired. Sign in again.');
     }
     if (payload.role !== 'authenticated' || typeof payload.sub !== 'string' || !UUID.test(payload.sub)) {
