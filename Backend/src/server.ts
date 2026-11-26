@@ -1,5 +1,6 @@
 import { pino } from 'pino';
 import { loadEnv } from './config/env.js';
+import { loadDotEnv } from './config/dotenv.js';
 import { createDatabase } from './db/database.js';
 import { createTokenVerifier } from './auth/token-verifier.js';
 import { createStorage } from './integrations/storage/storage.js';
@@ -7,6 +8,7 @@ import { createPaymentRegistry } from './integrations/payment-providers/registry
 import { createAiProvider } from './integrations/ai-providers/provider.js';
 import { createApp } from './app.js';
 
+loadDotEnv();
 const env = loadEnv();
 const logger = pino({ level: env.LOG_LEVEL, redact: ['*.password', '*.token', '*.secret'] });
 const db = createDatabase(env);

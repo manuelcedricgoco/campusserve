@@ -1,5 +1,13 @@
 # Changelog
 
+## Testing package (2026-11-26)
+
+- `Docs/LOCAL_TESTING_GUIDE.md`: step-by-step local setup against the Supabase project, test accounts, scenarios.
+- `Database/seed/002_dev_test_passwords.sql` (DEV ONLY: password `CampusServe@2026` on the 18 sample accounts) and
+  `901_remove_dev_test_passwords.sql`. Dry-run on the live project in a rolled-back transaction; not applied.
+- Backend reads `Backend/.env` automatically; `DATABASE_SSL_CA_FILE` for Supabase's database CA.
+- Real Supabase sign-in through the frontend verified with a temporary account (removed afterwards).
+
 ## Phase 3 — Integration, QA and security (2026-11-26)
 
 Report: [QA_AND_SECURITY_REPORT.md](QA_AND_SECURITY_REPORT.md).

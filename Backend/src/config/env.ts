@@ -12,6 +12,9 @@ const schema = z
     // `authenticated` role with the caller's JWT claims, so RLS applies.
     DATABASE_URL: z.string().min(1),
     DATABASE_SSL: bool.default(false),
+    // Supabase signs its database certificates with its own CA: download it from the dashboard
+    // (Database -> Settings -> SSL configuration) and point this at the file.
+    DATABASE_SSL_CA_FILE: z.string().optional(),
     DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
     DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(15000),
 

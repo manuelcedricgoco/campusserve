@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import pg from 'pg';
 import type { Env } from '../config/env.js';
 
@@ -32,7 +33,7 @@ export function createDatabase(env: Env): Database {
   const pool = new pg.Pool({
     connectionString: env.DATABASE_URL,
     max: env.DATABASE_POOL_MAX,
-    ssl: env.DATABASE_SSL ? { rejectUnauthorized: true } : undefined,
+    ssl: env.DATABASE_SSL ? { rejectUnauthorized: true, ...(env.DATABASE_SSL_CA_FILE ? { ca: readFileSync(env.DATABASE_SSL_CA_FILE, 'utf8') } : {}) } : undefined,
     application_name: 'campusserve-backend',
   });
 

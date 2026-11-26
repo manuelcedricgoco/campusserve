@@ -1,8 +1,10 @@
 import { pino } from 'pino';
 import { loadEnv } from './config/env.js';
+import { loadDotEnv } from './config/dotenv.js';
 import { createDatabase } from './db/database.js';
 import { runAutomationBatch } from './workers/automation-worker.js';
 
+loadDotEnv();
 const env = loadEnv();
 const logger = pino({ level: env.LOG_LEVEL });
 const db = createDatabase(env);

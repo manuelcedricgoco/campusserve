@@ -1,5 +1,8 @@
 # CampusServe
 
+> **To run and test it on your computer, start with [Docs/LOCAL_TESTING_GUIDE.md](Docs/LOCAL_TESTING_GUIDE.md)**
+> (setup steps, test accounts, test scenarios).
+
 A web-based campus-wide digital transaction, online queueing and clearance management system: student
 transactions, queue reservations, organization receipts and batch remittance, Guidance and Library
 requirements, violations and penalties, digital payments, and student clearance — following the school's
