@@ -1,0 +1,45 @@
+@import '@fontsource-variable/archivo/wdth.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root { color-scheme: light; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-paper text-ink antialiased;
+    font-family: 'Archivo Variable', Archivo, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    font-variation-settings: 'wdth' 100;
+  }
+  h1, h2, h3, .display {
+    font-variation-settings: 'wdth' 125;
+    letter-spacing: -0.01em;
+    line-height: 1.12;
+  }
+  h1 { @apply text-[1.75rem] font-extrabold sm:text-[2.125rem]; }
+  h2 { @apply text-xl font-bold; }
+  h3 { @apply text-base font-bold; }
+  :focus-visible { outline: 3px solid #F2A900; outline-offset: 2px; border-radius: 4px; }
+  ::selection { background: #FFF3D1; }
+}
+
+@layer components {
+  .numeral { font-variation-settings: 'wdth' 125; font-feature-settings: 'tnum' 1; }
+  .prose-measure { max-width: 68ch; }
+  /* The queue ticket: a stub with notches cut on both sides. */
+  .ticket {
+    --notch: 12px;
+    -webkit-mask: radial-gradient(circle var(--notch) at 0 62%, transparent 98%, #000) left / 51% 100% no-repeat,
+                  radial-gradient(circle var(--notch) at 100% 62%, transparent 98%, #000) right / 51% 100% no-repeat;
+            mask: radial-gradient(circle var(--notch) at 0 62%, transparent 98%, #000) left / 51% 100% no-repeat,
+                  radial-gradient(circle var(--notch) at 100% 62%, transparent 98%, #000) right / 51% 100% no-repeat;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+.leaflet-container { font-family: inherit; }

@@ -281,6 +281,13 @@ export function adminModule({ deps, authed }: ModuleContext) {
   }));
 
   // ---- Violation policy versions (drafts are editable; active/retired are immutable in the DB) ----
+  authed.get('/admin/violation-policies/:id/versions', handler({ params: idParams }, async (req, res, { params }) => {
+    send(res, await db.asUser(req.actor!, async (c) => {
+      await requireGlobal(c, 'config.manage');
+      return (await c.query(`select * from public.violation_policy_versions where policy_id = $1 order by version_number desc`, [params.id])).rows;
+    }));
+  }));
+
   authed.post('/admin/violation-policies/:id/versions', handler({
     params: idParams,
     body: z.object({

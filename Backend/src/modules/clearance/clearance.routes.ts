@@ -23,7 +23,9 @@ async function loadClearance(c: DbClient, id: string) {
        left join public.profiles actor on actor.id = a.acted_by
       where a.student_clearance_id = $1 order by a.sequence, a.step_name`, [id])).rows;
   const requirements = (await c.query(
-    `select * from public.clearance_requirement_status where student_clearance_id = $1 order by requirement_key`, [id])).rows;
+    `select rs.*, r.name, r.requirement_type from public.clearance_requirement_status rs
+       join public.clearance_requirements r on r.id = rs.requirement_id
+      where rs.student_clearance_id = $1 order by r.name`, [id])).rows;
   const history = (await c.query(
     `select h.*, p.full_name as actor_name from public.clearance_history h left join public.profiles p on p.id = h.actor_id
       where h.student_clearance_id = $1 order by h.created_at`, [id])).rows;
