@@ -80,8 +80,16 @@ export function RequestDocuments({ request, canUpload }: { request: RequestDetai
   const upload = useAction((f: File) => { const fd = new FormData(); fd.append('file', f); return api.upload(`/requests/${request.id}/documents`, fd); },
     { invalidate: ['request'], success: 'Document attached' });
   const open = async (docId: string) => {
-    try { const r = await api.get<{ url: string }>(`/requests/${request.id}/documents/${docId}/url`); window.open(r.url, '_blank', 'noopener'); }
-    catch (e) { toast.error('Could not open the file', e instanceof Error ? e.message : undefined); }
+    // Open the tab during the click (browsers block tabs opened after an await), then point it at the signed link.
+    const tab = window.open('', '_blank');
+    try {
+      const r = await api.get<{ url: string }>(`/requests/${request.id}/documents/${docId}/url`);
+      const href = new URL(r.url, window.location.href).toString();
+      if (tab) { tab.opener = null; tab.location.href = href; } else window.location.assign(href);
+    } catch (e) {
+      tab?.close();
+      toast.error('Could not open the file', e instanceof Error ? e.message : undefined);
+    }
   };
   return (
     <Section title="Documents">
