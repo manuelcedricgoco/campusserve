@@ -1,5 +1,33 @@
 # Changelog
 
+## Phase 1 extension — AI, automation and advanced GIS foundation (2026-11-26)
+
+Authorized decisions D1–D8 of [PHASE1_EXTENSION_IMPACT_ASSESSMENT.md](PHASE1_EXTENSION_IMPACT_ASSESSMENT.md).
+Repository moved to `manuelcedricgoco/campusserve` (branch `development`).
+
+| # | File | Applied to Supabase as | Contents |
+|---|---|---|---|
+| 011 | `011_extensions.sql` | `011_extensions` | vector 0.8.2, postgis 3.3.7, pgrouting 3.4.1, pg_trgm 1.6 in `extensions`; pg_cron 1.6.4 |
+| 012 | `012_ai_foundation.sql` | `012_ai_foundation` | 11 AI tables, permission-filtered hybrid retrieval, knowledge management, mock providers, guard-rail prompts |
+| 013 | `013_gis_foundation.sql` | `013_gis_foundation` | 13 GIS tables, geometry validation, verification with four-eyes rule, routing over verified paths, GeoJSON, search, analytics; campus row without geometry |
+| 014 | `014_automation_foundation.sql` | `014_automation_foundation` | 10 automation tables, idempotent event outbox, matcher, executor with retries/dead-letter, scheduler, templates; all rules/jobs disabled |
+| 015 | `015_extension_integration.sql` | `015_extension_integration` | additive nullable columns, event-capture triggers on 10 existing tables, 9 permissions, 2 private buckets |
+| 016 | `016_extension_rls_and_grants.sql` | `016_extension_rls_and_grants` | RLS and 34 policies for new tables, grants, audit and `updated_at` triggers, pg_cron executor job |
+
+Validation:
+- Existing schema preserved: all 1 444 pre-existing objects (functions, columns, constraints, policies, indexes,
+  grants) byte-identical after 011–016; no anon grants added; existing data unchanged.
+- Live schema identical to the tested local schema (9 fingerprints match with Supabase's `search_path`).
+- Tests: 274 SQL checks + concurrency test locally; the three new suites (113 checks) also on the live project.
+- Rollback `Database/rollback/016_to_011_down.sql` tested locally: restores the 001–010 schema exactly
+  (1 550 objects, 0 differences).
+- Fixes found by the new tests before release: full-text ranking returned non-matching chunks with a tiny
+  positive rank; route distance omitted the last segment.
+
+Advisors after the extension: security — 64 × `authenticated_security_definer_function_executable` (accepted:
+workflow functions that check the caller) and leaked-password protection disabled (dashboard action);
+performance — no warnings (163 unindexed FKs and 51 unused indexes, informational).
+
 ## Phase 1 — Supabase database (2026-11-25/26)
 
 Supabase project **CampusServe** (ref `iafcgxwckoelhmfaddzp`, `ap-southeast-1`) created and built.

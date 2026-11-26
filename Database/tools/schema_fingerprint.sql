@@ -1,6 +1,8 @@
 -- Schema fingerprint: run against two databases (e.g. the local test database and a
 -- Supabase project) and compare the hashes to prove their schemas are identical.
--- Read-only.
+-- Read-only. Object definitions are printed relative to search_path, so it is
+-- fixed to Supabase's default before hashing.
+set search_path = "$user", public, extensions;
 select 'functions' as part, count(*) as n,
        md5(string_agg(md5(pg_get_functiondef(p.oid)), ',' order by n.nspname, p.proname, pg_get_function_identity_arguments(p.oid))) as hash
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname in ('public', 'private')

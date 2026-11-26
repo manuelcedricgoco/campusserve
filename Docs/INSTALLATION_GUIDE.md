@@ -1,6 +1,6 @@
 # Installation guide — Supabase database
 
-Phase 1 covers the database only. The backend and frontend are not built yet.
+Phase 1 covers the database only (including the AI, GIS and automation foundation). The backend and frontend are not built yet.
 
 ## Existing project
 
@@ -11,13 +11,14 @@ Phase 1 covers the database only. The backend and frontend are not built yet.
 | Region | `ap-southeast-1` (Singapore) |
 | API URL | `https://iafcgxwckoelhmfaddzp.supabase.co` |
 | Plan | Free |
-| Applied | migrations 001–010 and the development seed |
+| Applied | migrations 001–016 and the development seed |
 
 Keys are in the Supabase dashboard → Project Settings → API. Never commit them.
 
 ## Setting up a new project from scratch
 
-1. Create a Supabase project (PostgreSQL 15 or later).
+1. Create a Supabase project (PostgreSQL 15 or later). Migration 011 enables `vector`, `postgis`, `pgrouting`,
+   `pg_trgm` and `pg_cron`; check they are available (Database → Extensions) before applying.
 2. Apply the migrations **in order** — they depend on each other:
 
    ```bash

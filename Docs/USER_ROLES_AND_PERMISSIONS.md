@@ -88,7 +88,7 @@ without code changes. The matrix above is the seeded default.
 
 ## Row Level Security by table
 
-RLS is enabled on all 55 tables. All policies are `SELECT` policies for `authenticated` except
+RLS is enabled on all 89 tables. All policies are `SELECT` policies for `authenticated` except
 `notifications_mark_read_own` (`UPDATE`).
 
 | Tables | Students | Organization officers | Office staff | Program / Department Heads | Cashier | Administrator |
@@ -127,6 +127,37 @@ The workflow functions additionally reject a student approving their own clearan
 Buckets `violation-evidence`, `request-documents` and `community-service-proofs` are private, limited to
 JPEG / PNG / PDF and 5–10 MB. No storage policies grant `authenticated` access, so files are reachable only
 through the backend, which must check the caller's access to the parent record before issuing a signed URL.
+
+## AI, GIS and automation permissions (migrations 012–016)
+
+| Permission | Granted to |
+|---|---|
+| `ai.view_usage` | administrator |
+| `ai.manage_knowledge` | administrator (campus-wide); `office_head`, `sas_head` (sources owned by their office) |
+| `ai.manage_providers` | administrator |
+| `automation.view` | administrator (all); `office_head`, `sas_head` (their office); `governor`, `mayor`, `president` (their organization) |
+| `automation.manage` | administrator |
+| `gis.view_restricted` | administrator |
+| `gis.manage` | administrator |
+| `gis.manage_office_locations` | `office_head`, `sas_head` (their own office's locations only) |
+| `gis.verify` | administrator — and never for a feature they last edited |
+
+| Tables | Students | Officers / office staff | Administrator |
+|---|---|---|---|
+| `ai_conversations`, `ai_messages` | own only | own only | own only (no content access) |
+| `ai_feedback`, `ai_usage_logs` | own | own | all (`ai.view_usage`) |
+| `ai_knowledge_sources`, documents, chunks | sources they may access (public / signed-in / permission) | + sources their office manages | all |
+| `ai_embeddings`, `ai_processing_logs` | — | managers of the source | all |
+| `ai_provider_settings`, `ai_prompt_templates` | — | — | `ai.manage_providers` |
+| `campus_*` features, layers, office/service locations | public and signed-in visibility | + restricted with `gis.view_restricted` / layer permission | all |
+| `gis_location_verifications` | — | — | `gis.manage` / `gis.verify` |
+| `automation_rules`, events, executions, logs | — | scoped `automation.view` | all |
+| `automation_error_logs`, `scheduled_jobs`, `notification_templates` | — | — | `automation.manage` / `automation.view` |
+| `notification_delivery_logs` | own | own | all |
+
+`anon` still has no access to any table or function. The signed-out map and assistant are served by the
+backend with the service role and `p_public_only = true` (decision D2). Tests: `070_ai.sql`, `080_gis.sql`,
+`090_automation.sql`.
 
 ## Tests
 

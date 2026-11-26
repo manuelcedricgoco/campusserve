@@ -6,12 +6,13 @@ RLS policy, is generated from the live schema in [DATABASE_TABLE_REFERENCE.md](D
 
 | | |
 |---|---|
-| Tables | 55 in schema `public`, all with Row Level Security enabled |
-| Workflow functions | 42 in `public`, called through the Supabase Data API as RPC |
-| Internal helpers and triggers | 39 in `private` (not exposed through the Data API) |
-| RLS policies | 56 |
-| Triggers | 75 (audit, `updated_at`, integrity guards) |
-| Migrations | 10, in `Database/migrations/` (see [CHANGELOG.md](CHANGELOG.md)) |
+| Tables | 89 in schema `public`, all with Row Level Security enabled |
+| Workflow functions | 70 in `public`, called through the Supabase Data API as RPC |
+| Internal helpers and triggers | 61 in `private` (not exposed through the Data API) |
+| RLS policies | 90 |
+| Triggers | 119 (audit, `updated_at`, integrity guards, automation event capture) |
+| Extensions | pgvector 0.8.2, PostGIS 3.3.7, pgRouting 3.4.1, pg_trgm 1.6 (schema `extensions`), pg_cron 1.6.4 |
+| Migrations | 16, in `Database/migrations/` (see [CHANGELOG.md](CHANGELOG.md)) |
 
 ## Design rules
 
@@ -126,6 +127,46 @@ added where the design needed them (marked ➕).
 | `notifications` | In-app notifications (Realtime enabled). |
 | `audit_logs` | Append-only audit log. |
 | `system_settings` | Non-secret configuration (time zone, enabled providers, library prerequisites). |
+
+### AI (migration 012) — see [AI_MODULE.md](AI_MODULE.md)
+
+| Table | Purpose |
+|---|---|
+| `ai_provider_settings` | provider / model / limits; `secret_ref` is the NAME of a backend secret, never the key |
+| `ai_prompt_templates` | versioned system prompts (one active per code) |
+| `ai_knowledge_sources` | knowledge sources: owner, visibility (`public`/`authenticated`/`permission`), official status (approved by a second person) |
+| `ai_knowledge_documents` | versioned documents with processing status; one current version per lineage |
+| `ai_document_chunks` | text chunks with a generated `tsvector` and trigram index |
+| `ai_embeddings` | pgvector embeddings, dimension recorded per row |
+| `ai_conversations`, `ai_messages`, `ai_feedback` | private conversations, messages with citations, ratings |
+| `ai_processing_logs`, `ai_usage_logs` | pipeline stages; usage, latency, errors (no content) |
+
+### GIS (migration 013) — see [GIS_MODULE.md](GIS_MODULE.md)
+
+| Table | Purpose |
+|---|---|
+| `campuses` | OMSU Mamburao Campus (no geometry seeded) |
+| `gis_data_sources`, `location_categories`, `campus_map_layers` | provenance, categories, layers with visibility |
+| `campus_buildings`, `campus_building_boundaries` | buildings and versioned footprints |
+| `campus_locations`, `office_locations`, `service_locations` | points of interest linked to offices and services |
+| ➕ `campus_path_nodes`, `campus_paths` | walking network (pgRouting); routing uses verified paths only |
+| `location_accessibility` | accessibility features |
+| `gis_location_verifications` | append-only verification history |
+
+### Automation (migration 014) — see [AUTOMATION_MODULE.md](AUTOMATION_MODULE.md)
+
+| Table | Purpose |
+|---|---|
+| `automation_triggers` | catalog of supported events |
+| `automation_rules`, `automation_actions` | rules (conditions, scope) and their ordered actions (closed list, no decisions) |
+| ➕ `automation_events` | idempotent event outbox |
+| `automation_executions`, `automation_execution_logs`, `automation_error_logs` | queue with retries / dead-letter, step logs, errors |
+| `scheduled_jobs` | named jobs synced to pg_cron when enabled |
+| `notification_templates`, `notification_delivery_logs` | versioned templates; delivery per notification and channel |
+
+Additive columns on existing tables (migration 015): `services.target_processing_days`,
+`service_requests.due_at`, `service_requests.ai_suggested_category / ai_suggestion_confidence / ai_suggested_at`,
+`student_clearances.due_date` — all nullable, unconfirmed values left empty.
 
 ## Relationships (ERD)
 
@@ -257,6 +298,68 @@ erDiagram
     student_clearances ||--o{ clearance_history : logs
 ```
 
+### AI
+
+```mermaid
+erDiagram
+    offices |o--o{ ai_knowledge_sources : owns
+    organizations |o--o{ ai_knowledge_sources : owns
+    permissions |o--o{ ai_knowledge_sources : "required permission"
+    ai_knowledge_sources ||--o{ ai_knowledge_documents : versions
+    ai_knowledge_documents |o--o| ai_knowledge_documents : supersedes
+    ai_knowledge_documents ||--o{ ai_document_chunks : chunks
+    ai_knowledge_documents ||--o{ ai_processing_logs : stages
+    ai_document_chunks ||--o{ ai_embeddings : embedded
+    ai_provider_settings ||--o{ ai_embeddings : model
+    profiles |o--o{ ai_conversations : owns
+    ai_conversations ||--o{ ai_messages : contains
+    ai_prompt_templates |o--o{ ai_messages : prompt
+    ai_messages ||--o{ ai_feedback : rated
+    ai_conversations |o--o{ ai_usage_logs : usage
+```
+
+### GIS
+
+```mermaid
+erDiagram
+    campuses ||--o{ campus_map_layers : layers
+    campuses ||--o{ campus_buildings : has
+    campus_buildings ||--o{ campus_building_boundaries : footprints
+    campuses ||--o{ campus_locations : has
+    campus_buildings |o--o{ campus_locations : contains
+    location_categories |o--o{ campus_locations : category
+    campus_map_layers |o--o{ campus_locations : layer
+    offices ||--o{ office_locations : at
+    campus_locations ||--o{ office_locations : hosts
+    services ||--o{ service_locations : at
+    campus_locations ||--o{ service_locations : hosts
+    organizations |o--o{ campus_locations : owns
+    campuses ||--o{ campus_path_nodes : nodes
+    campus_path_nodes ||--o{ campus_paths : "source / target"
+    campus_paths ||--o{ location_accessibility : features
+    campus_locations ||--o{ location_accessibility : features
+    gis_data_sources |o--o{ campus_locations : source
+    campus_locations ||--o{ gis_location_verifications : history
+    campus_paths ||--o{ gis_location_verifications : history
+```
+
+### Automation
+
+```mermaid
+erDiagram
+    automation_triggers ||--o{ automation_rules : "listened by"
+    automation_rules ||--o{ automation_actions : steps
+    automation_triggers ||--o{ automation_events : type
+    automation_events ||--o{ automation_executions : matched
+    automation_rules ||--o{ automation_executions : runs
+    automation_executions ||--o{ automation_execution_logs : steps
+    automation_executions |o--o{ automation_error_logs : errors
+    scheduled_jobs |o--o{ automation_error_logs : errors
+    notification_templates |o--o{ notification_delivery_logs : template
+    notifications ||--o{ notification_delivery_logs : deliveries
+    automation_executions |o--o{ notification_delivery_logs : sent_by
+```
+
 ## Key integrity rules enforced in the database
 
 | Rule | How |
@@ -288,7 +391,10 @@ Workflow functions (public, callable with the user's JWT; each checks the caller
 | Violations | `calculate_violation_count`, `calculate_penalty`, `report_violation`, `review_violation`, `file_violation_dispute`, `decide_violation_dispute` |
 | Penalties / payments | `assess_penalty`, `select_penalty_resolution`, `submit_community_service`, `verify_community_service`, `create_penalty_payment`, `verify_penalty_payment`, `record_payment_reconciliation` |
 | Clearance | `initiate_student_clearance`, `evaluate_student_clearance`, `approve_clearance_step`, `return_clearance_step`, `cancel_student_clearance` |
-| Service role only | `attach_payment_checkout`, `process_payment_webhook` |
+| AI | `search_knowledge`, `ai_register_knowledge_source`, `ai_approve_official_source`, `ai_register_document`, `ai_submit_feedback`, `record_request_ai_suggestion` |
+| GIS | `gis_save_location`, `gis_link_service_location`, `gis_save_building`, `gis_set_building_boundary`, `gis_save_path`, `gis_set_campus_geometry`, `gis_verify_feature`, `gis_import_geojson`, `gis_map_features`, `gis_search_locations`, `gis_find_route`, `gis_nearest_service_locations`, `gis_activity_by_location` |
+| Automation (configuration) | `automation_save_rule`, `automation_set_rule_enabled`, `automation_update_scheduled_job`, `automation_save_notification_template`, `automation_run_scheduled_job` |
+| Service role only | `attach_payment_checkout`, `process_payment_webhook`, `ai_record_processing_stage`, `automation_run_due`, `automation_claim_backend_executions`, `automation_complete_execution` |
 
 Errors are raised with a stable machine-readable code as the message (for example `SLOT_FULL`,
 `FORBIDDEN`, `CLEARANCE_REQUIREMENTS_NOT_MET`) and a human explanation as the hint. Permission
@@ -302,6 +408,8 @@ calculation (`compute_violation_count`), evaluation (`evaluate_requirement`, `re
 ## Storage and Realtime
 
 - Private buckets: `violation-evidence` (5 MB), `request-documents` (10 MB), `community-service-proofs` (5 MB),
-  JPEG / PNG / PDF only. No `storage.objects` policies exist, so only the backend (service role) can read or
+  JPEG / PNG / PDF only; `ai-knowledge` (20 MB; PDF, DOCX, TXT, Markdown, HTML); `gis-imports` (10 MB; GeoJSON). No `storage.objects` policies exist, so only the backend (service role) can read or
   write files; it must check access and issue short-lived signed URLs.
 - Realtime publication: `queue_tickets`, `queue_slots`, `notifications` (RLS applies to subscribers).
+- pg_cron: job `campusserve_automation_executor` runs `automation_run_due(100)` every minute; scheduled jobs are
+  added only when an administrator enables them.

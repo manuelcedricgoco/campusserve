@@ -1,7 +1,7 @@
 # Phase 1 extension — migration impact assessment (AI, Automation, Advanced GIS)
 
-**Status: PROPOSAL — not applied.** No database change has been made for this extension. Execution waits
-for your authorization of the decisions in [section 9](#9-decisions-needing-your-authorization).
+**Status: AUTHORIZED (D1–D8 approved) and APPLIED on 2026-11-26** as migrations 011–016. See
+[CHANGELOG.md](CHANGELOG.md) for the validation results.
 
 Assessed: 2026-11-26, against Supabase project **CampusServe** (`iafcgxwckoelhmfaddzp`, PostgreSQL 17.12,
 `ap-southeast-1`) and the repository `CampusServe/Database/`.

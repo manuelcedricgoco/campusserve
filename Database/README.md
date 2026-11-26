@@ -4,7 +4,8 @@ Supabase PostgreSQL schema, security, seed data and tests.
 
 ```
 Database/
-├── migrations/   001–010, applied in order (never edit an applied migration; add a new one)
+├── migrations/   001–016, applied in order (never edit an applied migration; add a new one)
+├── rollback/     016_to_011_down.sql (removes the AI/GIS/automation extension; destructive)
 ├── seed/         001_dev_seed.sql (development only), 900_remove_dev_seed.sql
 ├── tests/        SQL test suites, local Supabase stubs, test runner, concurrency test
 └── tools/        table-reference generator, schema fingerprint
@@ -22,8 +23,14 @@ Database/
 | `008_clearance_workflow.sql` | configurable clearance templates and the secure approval gate |
 | `009_rls_and_security.sql` | RLS, grants, policies, triggers, storage buckets, Realtime, default settings |
 | `010_rls_performance.sql` | per-query evaluation of policy checks |
+| `011_extensions.sql` | pgvector, PostGIS, pgRouting, pg_trgm, pg_cron |
+| `012_ai_foundation.sql` | AI assistant / RAG knowledge base / usage |
+| `013_gis_foundation.sql` | campus GIS, verification, routing, analytics |
+| `014_automation_foundation.sql` | event-driven and scheduled automation |
+| `015_extension_integration.sql` | additive columns, event triggers, permissions, buckets |
+| `016_extension_rls_and_grants.sql` | RLS, grants, triggers, pg_cron executor |
 
-All ten are applied to the Supabase project `iafcgxwckoelhmfaddzp`.
+All sixteen are applied to the Supabase project `iafcgxwckoelhmfaddzp`.
 
 ## Common tasks
 

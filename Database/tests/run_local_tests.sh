@@ -11,7 +11,7 @@ DB_NAME="${CAMPUSSERVE_TEST_DB:-campusserve_test}"
 PSQL=(psql -X -q -v ON_ERROR_STOP=1 -d "$DB_NAME")
 
 echo "Recreating database $DB_NAME"
-dropdb --if-exists "$DB_NAME"
+dropdb --if-exists --force "$DB_NAME"
 createdb "$DB_NAME"
 
 "${PSQL[@]}" -f "$DB_DIR/tests/local_supabase_stubs.sql" 2>&1 | grep -v -e wal_level -e 'logical' || true
