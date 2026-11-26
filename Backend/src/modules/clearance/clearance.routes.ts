@@ -29,10 +29,19 @@ async function loadClearance(c: DbClient, id: string) {
   const history = (await c.query(
     `select h.*, p.full_name as actor_name from public.clearance_history h left join public.profiles p on p.id = h.actor_id
       where h.student_clearance_id = $1 order by h.created_at`, [id])).rows;
+  // Signers' names are part of the clearance record. RLS hides other people's profiles, so once the caller has
+  // been shown this clearance, the names of its signers and actors are read with the service role.
+  const ids = [...new Set([...approvals.map((a) => a.acted_by), ...history.map((h) => h.actor_id)].filter(Boolean))];
+  let names = new Map<string, string>();
+  if (ids.length) {
+    await c.query('set local role service_role');
+    names = new Map((await c.query(`select id, full_name from public.profiles where id = any($1::uuid[])`, [ids])).rows.map((r) => [r.id, r.full_name]));
+    await c.query('set local role authenticated');
+  }
   return {
     ...clearance,
-    approvals: approvals.map((a) => ({ ...a, requirements: requirements.filter((r) => r.approval_id === a.id) })),
-    history,
+    approvals: approvals.map((a) => ({ ...a, acted_by_name: a.acted_by_name ?? names.get(a.acted_by) ?? null, requirements: requirements.filter((r) => r.approval_id === a.id) })),
+    history: history.map((h) => ({ ...h, actor_name: h.actor_name ?? names.get(h.actor_id) ?? null })),
   };
 }
 

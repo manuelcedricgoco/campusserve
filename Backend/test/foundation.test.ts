@@ -123,3 +123,11 @@ describe('configuration', () => {
     })).toThrow(/PAYMENT_SANDBOX must be false.*\n.*memory/s);
   });
 });
+
+describe('date serialization', () => {
+  it('returns calendar dates as YYYY-MM-DD strings, independent of the server time zone', async () => {
+    const svc = (await t.sql<{ id: string }>(`select id from public.services where code = 'COUNSELING'`))[0]!;
+    const slots = (await (await t.as(U.bsit1)).get(`/api/v1/queue/services/${svc.id}/slots`)).body.data;
+    expect(slots[0].slot_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});

@@ -16,7 +16,7 @@ export function PageHeader({ title, description, actions, back }: { title: strin
 
 export function Section({ title, description, actions, children, className }: { title?: string; description?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={cn('mb-8', className)}>
+    <section className={cn('mb-8 min-w-0', className)}>
       {(title || actions) && (
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <div>{title && <h2>{title}</h2>}{description && <p className="mt-0.5 text-sm text-ink-soft">{description}</p>}</div>

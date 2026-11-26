@@ -44,7 +44,7 @@ function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => v
 
 function WorkspaceSwitcher({ access, current }: { access: Access; current: Workspace }) {
   const navigate = useNavigate();
-  if (access.workspaces.length < 2) return <p className="px-3 text-sm text-white/60">{WORKSPACE_LABEL[current]}</p>;
+  if (access.workspaces.length < 2) return <p className="px-3 text-sm text-white/80">{WORKSPACE_LABEL[current]}</p>;
   return (
     <label className="block px-3">
       <span className="sr-only">Workspace</span>
@@ -85,7 +85,7 @@ function ShellInner({ access, open, setOpen, unread, signOut }: { access: Access
       <Link to={WORKSPACE_HOME[ws]} className="px-3"><Logo light /></Link>
       <WorkspaceSwitcher access={access} current={ws} />
       <nav aria-label="Main" className="flex-1 overflow-y-auto"><NavList items={items} onNavigate={() => setOpen(false)} /></nav>
-      <p className="px-3 text-xs text-white/50">OMSU Mamburao Campus{access.academicYear ? `, AY ${access.academicYear.code}` : ''}</p>
+      <p className="px-3 text-xs text-white/70">OMSU Mamburao Campus{access.academicYear ? `, AY ${access.academicYear.code}` : ''}</p>
     </div>
   );
 
@@ -103,7 +103,7 @@ function ShellInner({ access, open, setOpen, unread, signOut }: { access: Access
       )}
       <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-mist bg-paper/95 px-3 backdrop-blur sm:px-6">
         <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu" onClick={() => setOpen(true)}><Menu className="h-5 w-5" /></Button>
-        <Link to={WORKSPACE_HOME[ws]} className="lg:hidden"><Logo /></Link>
+        <Link to={WORKSPACE_HOME[ws]} className="lg:hidden" aria-label="CampusServe home"><Logo compact /></Link>
         <div className="flex-1" />
         <Button variant="ghost" size="icon" asChild>
           <Link to="/notifications" aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'} className="relative">

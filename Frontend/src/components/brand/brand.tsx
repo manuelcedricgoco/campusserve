@@ -14,11 +14,11 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ className, light }: { className?: string; light?: boolean }) {
+export function Logo({ className, light, compact }: { className?: string; light?: boolean; compact?: boolean }) {
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <LogoMark />
-      <span className={cn('display text-lg font-extrabold', light ? 'text-white' : 'text-ink')}>CampusServe</span>
+      <span className={cn('display text-lg font-extrabold', light ? 'text-white' : 'text-ink', compact && 'hidden min-[380px]:inline')}>CampusServe</span>
     </span>
   );
 }

@@ -187,7 +187,7 @@ export function ReportsPage() {
         <Section title="Clearance steps" actions={<Button variant="secondary" size="sm" onClick={() => download('clearance-steps')}><Download className="h-4 w-4" aria-hidden />CSV</Button>}>
           <Panel>
             {steps.data && steps.data.length > 0 ? (
-              <div className="h-64"><Bar options={{ maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true } } }}
+              <div className="h-64"><Bar role="img" aria-label={`Clearance steps: ${steps.data.map((x) => `${x.step_name}, ${x.approved} signed, ${x.pending} waiting, ${x.returned} returned`).join('; ')}`} options={{ maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true } } }}
                 data={{ labels: steps.data.map((x) => x.step_name), datasets: [
                   { label: 'Signed', data: steps.data.map((x) => x.approved), backgroundColor: '#0E5E6F' },
                   { label: 'Waiting', data: steps.data.map((x) => x.pending), backgroundColor: '#F2A900' },

@@ -141,3 +141,13 @@ describe('clearance workflow end to end (BSIT student, English Club member)', ()
     expect(notifications.meta.total).toBeGreaterThan(0);
   });
 });
+
+describe('clearance signer names', () => {
+  it('the student sees who signed each step, even though other profiles are hidden by RLS', async () => {
+    const list = expectStatus(await (await t.as(U.bsit1)).get('/api/v1/clearances'), 200).data;
+    const c = expectStatus(await (await t.as(U.bsit1)).get(`/api/v1/clearances/${list[0].id}`), 200).data;
+    expect(c.approvals.every((a: { acted_by_name: string | null }) => typeof a.acted_by_name === 'string')).toBe(true);
+    const direct = await (await t.as(U.bsit1)).get(`/api/v1/students?q=Governor`);
+    expect(direct.body.data ?? []).toHaveLength(0); // still no general access to other profiles
+  });
+});

@@ -60,7 +60,7 @@ export function StudentHome() {
                   <div className="h-full bg-lagoon" style={{ width: `${c.total_steps ? (100 * c.approved_steps) / c.total_steps : 0}%` }} />
                 </div>
                 <p className="mt-2 text-sm text-ink-soft">{c.approved_steps} of {c.total_steps} signatures</p>
-                <Button variant="link" asChild className="mt-2"><Link to="/student/clearance">See what is needed</Link></Button>
+                <Button variant="link" asChild className="mt-2"><Link to="/student/clearance">{c.status === 'completed' ? 'View clearance' : 'See what is still needed'}</Link></Button>
               </>
             ) : <p className="mt-2 text-ink-soft">Your clearance has not been started. SAS starts it when the clearance period opens.</p>}
           </Panel>

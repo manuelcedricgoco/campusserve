@@ -20,11 +20,23 @@ interface Service { id: string; name: string; office_name: string; service_kind:
 interface Slot { id: string; slot_date: string; start_time: string; end_time: string; capacity: number; available: number; status: string }
 type Ticket = TicketData & { id: string; service_id: string; cancel_reason?: string | null; events?: { id: string; event_type: string; to_status: string | null; created_at: string; notes: string | null }[] };
 
+/** Current Manila date and HH:MM, so slots that already started are not offered. */
+function manilaNow() {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  return { day: `${get('year')}-${get('month')}-${get('day')}`, time: `${get('hour')}:${get('minute')}` };
+}
+
 function SlotPicker({ serviceId, onPick, excludeSlot }: { serviceId: string; onPick: (s: Slot) => void; excludeSlot?: string }) {
   const slots = useQuery({ queryKey: ['slots', serviceId], queryFn: () => api.get<Slot[]>(`/queue/services/${serviceId}/slots`) });
   const byDate = useMemo(() => {
+    const now = manilaNow();
     const m = new Map<string, Slot[]>();
-    for (const s of slots.data ?? []) if (s.id !== excludeSlot) m.set(s.slot_date, [...(m.get(s.slot_date) ?? []), s]);
+    for (const s of slots.data ?? []) {
+      if (s.id === excludeSlot) continue;
+      if (s.slot_date < now.day || (s.slot_date === now.day && s.start_time.slice(0, 5) <= now.time)) continue; // already started
+      m.set(s.slot_date, [...(m.get(s.slot_date) ?? []), s]);
+    }
     return [...m.entries()];
   }, [slots.data, excludeSlot]);
   const [day, setDay] = useState<string | null>(null);

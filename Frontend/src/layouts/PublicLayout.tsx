@@ -16,7 +16,7 @@ export function PublicLayout() {
     <div className="flex min-h-dvh flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">Skip to content</a>
       <header className="border-b border-mist bg-paper">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
           <Link to="/" aria-label="CampusServe home"><Logo /></Link>
           <nav aria-label="Public" className="ml-4 hidden gap-1 md:flex">
             {LINKS.map((l) => (
@@ -25,8 +25,8 @@ export function PublicLayout() {
           </nav>
           <div className="flex-1" />
           {status === 'signed_in'
-            ? <Button asChild><Link to="/home">Open CampusServe</Link></Button>
-            : <Button asChild><Link to="/sign-in">Sign in</Link></Button>}
+            ? <Button asChild className="px-3 sm:px-4"><Link to="/home">Open<span className="hidden sm:inline">&nbsp;CampusServe</span></Link></Button>
+            : <Button asChild className="px-3 sm:px-4"><Link to="/sign-in">Sign in</Link></Button>}
         </div>
         <nav aria-label="Public (mobile)" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 pb-2 md:hidden">
           {LINKS.map((l) => (

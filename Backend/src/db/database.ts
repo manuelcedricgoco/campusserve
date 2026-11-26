@@ -24,6 +24,9 @@ export interface Database {
 
 // numeric -> number, bigint ids stay strings to avoid precision loss
 pg.types.setTypeParser(1700, (v) => Number(v));
+// date -> 'YYYY-MM-DD' as stored. The default parser builds a JS Date at local midnight, which shifts the
+// calendar day when the server's time zone is not UTC. Campus dates are Asia/Manila calendar dates.
+pg.types.setTypeParser(1082, (v) => v);
 
 export function createDatabase(env: Env): Database {
   const pool = new pg.Pool({

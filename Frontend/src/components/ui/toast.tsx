@@ -25,7 +25,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <T.Close aria-label="Dismiss"><X className="h-4 w-4" /></T.Close>
           </T.Root>
         ))}
-        <T.Viewport className="fixed bottom-20 left-1/2 z-[60] flex w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 flex-col gap-2 sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0" />
+        <T.Viewport className="fixed left-1/2 top-3 z-[60] flex w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 flex-col gap-2 sm:bottom-6 sm:left-auto sm:right-6 sm:top-auto sm:translate-x-0" />
       </T.Provider>
     </Ctx.Provider>
   );
