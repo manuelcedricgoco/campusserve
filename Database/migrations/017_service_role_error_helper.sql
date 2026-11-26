@@ -1,0 +1,14 @@
+-- =============================================================================
+-- 017 - Let service_role raise CampusServe business errors from triggers
+-- -----------------------------------------------------------------------------
+-- Found in Phase 2 backend testing. Protective triggers (protect_active_template,
+-- protect_policy_version, protect_assessment_snapshot, prevent_history_mutation,
+-- prevent_audit_mutation, check_* validators, ...) are SECURITY INVOKER and call
+-- private.fail(). When the backend writes as service_role (admin configuration),
+-- the trigger still blocked the write, but with "permission denied for function
+-- fail" (42501) instead of its business error (e.g. TEMPLATE_LOCKED).
+--
+-- private.fail() only raises an exception; executing it reads or changes no data.
+-- Additive and idempotent. No table, policy or data change.
+-- =============================================================================
+grant execute on function private.fail(text, text, text) to service_role;

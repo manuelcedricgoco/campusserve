@@ -108,3 +108,17 @@ export function createTestContext(envOverrides: Record<string, string> = {}, dep
     close: () => db.close(),
   };
 }
+
+/** Asserts an HTTP status and shows the error body when it does not match. */
+export function expectStatus(res: { status: number; body: unknown }, status: number) {
+  if (res.status !== status) {
+    throw new Error(`Expected HTTP ${status}, got ${res.status}: ${JSON.stringify(res.body)}`);
+  }
+  return res.body as { data: any; meta?: any; error?: any };
+}
+
+export async function idOf(t: TestContext, sql: string, params: unknown[] = []) {
+  const rows = await t.sql<{ id: string }>(sql, params);
+  if (!rows[0]) throw new Error(`No row for ${sql}`);
+  return rows[0].id;
+}
