@@ -11,8 +11,10 @@ actual process and preserving each organization's and office's authority.
 |---|---|---|
 | 1 | Supabase database: schema, business rules, RLS, seed, tests, documentation | **Done** — applied to Supabase project `iafcgxwckoelhmfaddzp` and verified |
 | 1 (extension) | AI, automation and advanced GIS database foundation | **Done** — migrations 011–016 applied and verified (274 SQL checks locally; new suites also live) |
-| 2+ | Backend (Node.js, Express, TypeScript) | Not started — `Backend/` is empty |
-| 2+ | Frontend (React, Vite, TypeScript, Tailwind, shadcn/ui) | Not started — `Frontend/` is empty |
+| 2 | Backend (Node.js, Express, TypeScript): 161 REST endpoints, worker | **Built and tested locally** (80 integration tests). Not deployed |
+| 2 | Frontend (React, Vite, TypeScript, Tailwind, Radix): public site and six workspaces | **Built and tested locally** (unit tests, 45-page browser and accessibility sweep). Not deployed |
+| 3 | Integration, QA, security testing | Not started |
+| 4 | Deployment (Vercel, Render, Supabase) | Not started |
 | — | GCash / Maya / LANDBANK | **Not integrated.** The database is prepared; no provider is enabled. |
 | — | AI provider | **None connected.** Mock provider only. |
 | — | Campus geographic data | **None entered.** Campus row exists without coordinates (unverified). |
@@ -21,8 +23,8 @@ actual process and preserving each organization's and office's authority.
 
 ```
 CampusServe/
-├── Backend/      (Phase 2)
-├── Frontend/     (Phase 2)
+├── Backend/      REST API and worker — see Docs/API_DOCUMENTATION.md
+├── Frontend/     web app
 ├── Database/     migrations, seed, tests, tools — see Database/README.md
 ├── Docs/         documentation
 ├── README.md
@@ -45,12 +47,14 @@ CampusServe/
 | [AUTOMATION_MODULE.md](Docs/AUTOMATION_MODULE.md) | event-driven and scheduled automation |
 | [GIS_MODULE.md](Docs/GIS_MODULE.md) · [GIS_DATA_GUIDE.md](Docs/GIS_DATA_GUIDE.md) | campus GIS and how to enter verified data |
 | [PHASE1_EXTENSION_IMPACT_ASSESSMENT.md](Docs/PHASE1_EXTENSION_IMPACT_ASSESSMENT.md) | the authorized extension plan |
-| [INSTALLATION_GUIDE.md](Docs/INSTALLATION_GUIDE.md) | Supabase setup |
+| [PROJECT_OVERVIEW.md](Docs/PROJECT_OVERVIEW.md) | what CampusServe is and who uses it |
+| [REQUIREMENTS.md](Docs/REQUIREMENTS.md) | requirements and their current status |
+| [API_DOCUMENTATION.md](Docs/API_DOCUMENTATION.md) | REST API: auth, errors, all endpoints |
+| [INSTALLATION_GUIDE.md](Docs/INSTALLATION_GUIDE.md) | Supabase setup, running the backend and frontend locally |
 | [TESTING_GUIDE.md](Docs/TESTING_GUIDE.md) | running and reading the tests |
 | [CHANGELOG.md](Docs/CHANGELOG.md) | migration history, advisor findings |
 
-Still to write with the backend and frontend: `PROJECT_OVERVIEW.md`, `REQUIREMENTS.md`, `API_DOCUMENTATION.md`,
-`DEPLOYMENT_GUIDE.md`.
+Still to write in Phase 4: `DEPLOYMENT_GUIDE.md`.
 
 ## Open items that need the school's confirmation
 

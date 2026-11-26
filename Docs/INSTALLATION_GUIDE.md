@@ -1,4 +1,4 @@
-# Installation guide — Supabase database
+# Installation guide
 
 Phase 1 covers the database only (including the AI, GIS and automation foundation). The backend and frontend are not built yet.
 
@@ -57,18 +57,47 @@ Keys are in the Supabase dashboard → Project Settings → API. Never commit th
    policies, full program names, `library.slip_prerequisites`, the real academic year dates.
 7. Run the advisors (dashboard → Advisors) after every schema change.
 
-## Environment variables (names only)
+## Environment variables
 
-| Variable | Used by | Secret |
-|---|---|---|
-| `SUPABASE_URL` | backend | no |
-| `SUPABASE_ANON_KEY` | backend (user-scoped client) | publishable |
-| `SUPABASE_SERVICE_ROLE_KEY` | backend only | **yes** — never in the frontend |
-| `SUPABASE_DB_URL` | applying migrations from a terminal | **yes** (contains the DB password) |
-| `VITE_SUPABASE_URL` | frontend | no |
-| `VITE_SUPABASE_ANON_KEY` | frontend | publishable |
+Full lists with comments: [`Backend/.env.example`](../Backend/.env.example) and
+[`Frontend/.env.example`](../Frontend/.env.example). Secrets (**backend only**): `DATABASE_URL`,
+`SUPABASE_JWT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `PAYMENT_SANDBOX_SECRET`, and any AI provider key named
+by `ai_provider_settings.secret_ref`. The frontend receives only `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+(publishable) and `VITE_API_URL`.
 
 Payment provider credentials will be added (backend only) when a provider is actually onboarded.
+
+## Running the backend and frontend locally
+
+Requirements: Node.js 22, a PostgreSQL 15+ server with PostGIS, pgvector, pgRouting and pg_cron for the local
+test database (see [TESTING_GUIDE.md](TESTING_GUIDE.md)), or a Supabase project.
+
+```bash
+cd Backend && npm ci && cp .env.example .env    # then fill in .env
+```
+
+```bash
+npm run dev          # API on http://localhost:4000 (npm run build && npm start for the compiled server)
+```
+
+```bash
+npm run worker       # optional: automation worker (after npm run build)
+```
+
+```bash
+cd Frontend && npm ci && cp .env.example .env   # set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+```
+
+```bash
+npm run dev          # http://localhost:5173, proxies /api to :4000
+```
+
+Signing in needs a Supabase Auth user linked to a CampusServe profile. The development seed's sample accounts
+have no passwords; set one in the Supabase dashboard for a test project, never for production.
+
+**Developer tokens (local only).** With `VITE_DEV_AUTH=true`, `vite dev` (never a production build) accepts a
+token stored in `localStorage['campusserve.devToken']`. The browser checks in `Frontend/tests/e2e` mint such
+tokens with the local test JWT secret for the seeded accounts. Never use this against a real project.
 
 ## Running the database tests locally
 

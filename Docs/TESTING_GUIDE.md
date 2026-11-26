@@ -1,4 +1,4 @@
-# Testing guide — database
+# Testing guide
 
 ## Local test run
 
@@ -71,3 +71,53 @@ so the transaction always aborts. The suites rely on the development seed's samp
 
 After every migration, run the Supabase security and performance advisors. Current accepted findings are
 listed in [CHANGELOG.md](CHANGELOG.md).
+
+## Backend integration tests (Phase 2)
+
+```bash
+cd Backend && npm test
+```
+
+`test/global-setup.ts` rebuilds the local throwaway database (`Database/tests/build_test_db.sh`: Supabase stubs,
+all migrations, development seed) once per run, then each test drives the real Express app through HTTP with
+HS256 test tokens for the seeded accounts. It uses `PGHOST`/`PGPORT`/`PGUSER` (default `/var/tmp/cspg`, `54329`,
+`postgres`). Set `CAMPUSSERVE_SKIP_DB_BUILD=1` to reuse the current database. The build script refuses any
+database whose name does not contain `test`.
+
+Covered: token verification (wrong secret, expired, wrong issuer, wrong role, `alg: none`), error mapping,
+validation, the full clearance workflow end to end (remittance, receipts, Guidance, Library, ordered signing),
+violations, disputes, penalties, community service, sandbox payments (idempotency, bad signatures, amount
+mismatch, duplicates, organization verification), queue, requests and file uploads (magic-byte checks, access
+isolation), admin (self-lockout, audit, policy and template versioning), reports and CSV escaping, AI (permission
+filtering, no leakage of staff-only sources, public mode, daily limit, suggestion-only classification), GIS
+(nothing invented, validation, routing only over verified data), automation (closed action list, worker).
+
+Result recorded 2026-11-26: **80 passed**, also with `TZ=Asia/Manila`.
+
+## Frontend tests
+
+```bash
+cd Frontend && npm test          # unit tests (access model, formatting, components): 8 passed
+```
+
+```bash
+npm run typecheck && npm run build
+```
+
+Browser checks need the local stack running (API on :4000 with the test JWT secret, `VITE_DEV_AUTH=true npx vite`):
+
+```bash
+node tests/e2e/page-sweep.mjs 320,768,1440     # 45 pages: console errors, failed API calls, overflow, h1
+```
+
+```bash
+AXE=1 AXE_PATH=/path/to/axe-core/axe.min.js node tests/e2e/page-sweep.mjs 390,1440   # WCAG 2 A/AA
+```
+
+```bash
+node tests/e2e/flows.mjs     # click-through: book a slot, send a request, sandbox payment end to end
+```
+
+Results recorded 2026-11-26: page sweep **no problems** on 45 pages at 320, 768 and 1440 px; axe **0 violations**;
+flows: request, provider setting, report/verify/assess, sandbox payment, organization verification and access
+denial passed; slot booking passed on a fresh database (a rerun is refused by the one-active-reservation rule, as designed).

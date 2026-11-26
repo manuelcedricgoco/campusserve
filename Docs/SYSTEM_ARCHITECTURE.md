@@ -94,3 +94,17 @@ The backend will add input validation (Zod), rate limiting, consistent responses
 One Supabase project today (development data: sample accounts without passwords). A separate production
 project, or removal of the development seed (`Database/seed/900_remove_dev_seed.sql`), is required before
 real use — decided in Phase 4.
+
+## Backend request model (Phase 2)
+
+1. `Authorization: Bearer` token verified by the backend (JWKS or HS256; audience, issuer, role, expiry).
+2. One database transaction per request: `set_config('request.jwt.claims', ...)` + `set local role authenticated`.
+   RLS and the workflow functions' own checks decide what the caller may read and do.
+3. Writes go through workflow functions (`public.*`, called with named `p_` arguments). Where no function
+   exists (admin configuration, file metadata), the backend first checks the permission inside the same
+   transaction, then switches to `service_role` for that write; the JWT subject stays the caller, so the audit
+   log records them.
+4. Webhooks, public read-only endpoints and the worker use the service role. Public endpoints return only
+   active, public, verified data.
+5. Database errors map to HTTP: business codes from `private.fail` become 404/409/422 with the database's
+   message; permission errors become 403; other errors become a generic 500 (details only in server logs).

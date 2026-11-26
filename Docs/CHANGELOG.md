@@ -1,5 +1,23 @@
 # Changelog
 
+## Phase 2 — Backend and frontend (2026-11-26)
+
+- **Backend** (`Backend/`): Express 5 + TypeScript REST API, 161 endpoints across 16 modules; Supabase JWT
+  verification; per-request transactions as `authenticated` with the caller's claims (RLS applies); provider
+  adapters for payments (not configured / development sandbox), AI (mock + OpenAI-compatible adapter) and
+  storage (Supabase private buckets / memory); signed payment webhooks; knowledge ingestion; automation worker.
+- **Frontend** (`Frontend/`): React 18 + Vite 7 + TypeScript + Tailwind; public site and student, organization,
+  office, department, cashier and administration workspaces.
+- **Migration 017** `017_service_role_error_helper` (applied to `iafcgxwckoelhmfaddzp`, verified):
+  `grant execute on private.fail(text,text,text) to service_role`. Protective triggers called by service-role
+  writes raised "permission denied for function fail" instead of their business error. Rollback:
+  `Database/rollback/017_down.sql`. `anon`/`authenticated` privileges unchanged (verified).
+- `Database/tests/build_test_db.sh` factored out of `run_local_tests.sh` (used by the backend tests).
+- Fixed during Phase 2: Postgres `date` values were serialized as timestamps (wrong day outside UTC); now
+  `YYYY-MM-DD`. Clearance signer names are shown to the student. Started queue slots are hidden.
+- Advisors after 017: unchanged (64 accepted SECURITY DEFINER warnings; leaked-password protection is a
+  dashboard setting still to enable).
+
 ## Phase 1 extension — AI, automation and advanced GIS foundation (2026-11-26)
 
 Authorized decisions D1–D8 of [PHASE1_EXTENSION_IMPACT_ASSESSMENT.md](PHASE1_EXTENSION_IMPACT_ASSESSMENT.md).
