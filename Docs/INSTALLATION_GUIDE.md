@@ -67,6 +67,17 @@ by `ai_provider_settings.secret_ref`. The frontend receives only `VITE_SUPABASE_
 
 Payment provider credentials will be added (backend only) when a provider is actually onboarded.
 
+## Accounts and sign-up (Phase 3)
+
+- In Supabase Auth, turn **off** "Allow new users to sign up" (Authentication → Sign In / Providers) and turn **on**
+  leaked-password protection. CampusServe accounts are issued by the university.
+- New Auth users get an **inactive** CampusServe profile (migration 018). Activate them in Administration → Users.
+- First administrator of a new project (SQL editor, once):
+  `update public.profiles set is_active = true where email = '<admin email>';` and
+  `insert into public.user_roles (user_id, role) select id, 'administrator' from public.profiles where email = '<admin email>';`
+- Token verification uses the project's JWKS (ES256). If the server reaches the internet only through an HTTP proxy,
+  start Node with `NODE_USE_ENV_PROXY=1` so `fetch` uses it.
+
 ## Running the backend and frontend locally
 
 Requirements: Node.js 22, a PostgreSQL 15+ server with PostGIS, pgvector, pgRouting and pg_cron for the local

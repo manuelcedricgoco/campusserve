@@ -9,11 +9,11 @@ means the behaviour exists and waits for the school's confirmed values.
 | # | Requirement | Status |
 |---|---|---|
 | F1 | Sign in with a university account; roles and positions decide access | Built (Supabase Auth; backend verifies tokens; RLS enforces) |
-| F2 | Account creation by the university | **Partial:** accounts are created in Supabase Auth; roles/positions are managed in CampusServe. In-app invitations are not built |
+| F2 | Account creation by the university | **Partial:** accounts are created in Supabase Auth and start inactive until activated in CampusServe (migration 018); roles/positions are managed in CampusServe. In-app invitations and student-record import are not built |
 | F3 | Online queue: slots from schedules, capacity, per-student limits, cancellation cut-off, rescheduling, office queue board | Built |
 | F4 | Service requests with private documents and a status history | Built |
 | F5 | Organization receipts, recorded then verified | Built |
-| F6 | Class remittance batches; only individually verified students get receipts | Built |
+| F6 | Class remittance batches; only individually verified students get receipts | Built; batches are scoped to the class officer's section (Phase 3) |
 | F7 | Guidance: teacher evaluations before the guidance slip | Built |
 | F8 | Library: ID validation for the academic year, library receipt, library slip | Built. Whether the receipt must come before the slip is **configurable, unconfirmed** |
 | F9 | Clearance: SAS initiates; SSG Governor checks receipts and slips; SAS Head; department organization Mayor; Program Head; ordered and configurable | Built (template in the database; versioned) |
@@ -42,6 +42,7 @@ means the behaviour exists and waits for the school's confirmed values.
 | Integrity | Idempotent payments and webhooks; immutable policy versions and active templates; concurrency-safe queue (tested) |
 | Responsive 320–1440 px | Checked on 45 pages at 320, 768 and 1440 px: no horizontal overflow |
 | Accessibility | axe-core WCAG 2 A/AA: 0 violations on 45 pages; labelled fields, keyboard focus, reduced motion |
+| Performance | 835 req/s, p95 83 ms for 50 concurrent users on one local process; exactly-once queue numbering under a 300-request burst (Phase 3) |
 | Low bandwidth | Signed-in areas load as separate chunks; system fonts fallback; no external font CDN |
 | Time zone | Campus dates are Asia/Manila calendar dates; API returns dates as `YYYY-MM-DD` (tested under `TZ=Asia/Manila`) |
 

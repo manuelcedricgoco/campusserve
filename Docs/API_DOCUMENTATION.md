@@ -9,6 +9,7 @@ Base path: `/api/v1`. JSON in and out (`Content-Type: application/json`), except
 - Sign-in happens in Supabase Auth from the frontend. The frontend sends the access token as `Authorization: Bearer <token>`.
 - The backend verifies the token itself (Supabase JWKS, or the legacy HS256 secret): signature, `aud = authenticated`, `iss = <SUPABASE_URL>/auth/v1`, `role = authenticated`, UUID `sub`, expiry. Unsigned or wrong-issuer tokens get 401 `INVALID_TOKEN`.
 - Each request runs in one database transaction as the `authenticated` role with the caller's JWT claims, so every Row Level Security policy and workflow-function permission check applies unchanged. The backend never decides access on the frontend's word.
+- New accounts start **inactive** (migration 018): `/me` returns `profile.is_active = false` and other data is empty or refused until an administrator activates the account.
 - The service role is used only for webhooks, the public endpoints (read-only, filtered), file metadata after the caller's access was checked, admin writes after a permission check, and the worker.
 
 ## Responses
@@ -27,7 +28,7 @@ Errors: `{ "error": { "code", "message", "details"?, "requestId" } }`. `message`
 | 413 / 415 | File too large / wrong real file type | `FILE_TOO_LARGE`, `UNSUPPORTED_FILE_TYPE` |
 | 422 | Business rule refused | `REASON_REQUIRED`, `RESERVATION_LIMIT_REACHED`, `PROVIDER_NOT_AVAILABLE`, `QUANTITY_REQUIRED`, `SELF_LOCKOUT` |
 | 429 | Rate limit (per user per minute; stricter for public routes) or AI daily limit | `RATE_LIMITED`, `AI_DAILY_LIMIT` |
-| 503 / 504 | Database, provider or AI not available | `DATABASE_UNAVAILABLE`, `PROVIDER_NOT_CONFIGURED`, `AI_PROVIDER_UNAVAILABLE` |
+| 503 / 504 | Database, sign-in key server, provider or AI not available | `DATABASE_UNAVAILABLE`, `AUTH_UNAVAILABLE`, `PROVIDER_NOT_CONFIGURED`, `AI_PROVIDER_UNAVAILABLE` |
 
 Business-rule codes come from the database (`private.fail(code, message)`); the message text is the database's hint.
 
@@ -112,6 +113,7 @@ Organization receipts and class remittances. A batch's declared total never mark
 | POST | `/api/v1/receipts/:id/verify` | Bearer |
 | GET | `/api/v1/remittances` | Bearer |
 | GET | `/api/v1/remittances/:id` | Bearer |
+| GET | `/api/v1/remittances/:id/candidates` | Bearer (batch's class officer or the organization's reviewer) |
 | POST | `/api/v1/remittances` | Bearer |
 | PUT | `/api/v1/remittances/:id/items` | Bearer |
 | DELETE | `/api/v1/remittances/items/:id` | Bearer |

@@ -1,5 +1,23 @@
 # Changelog
 
+## Phase 3 — Integration, QA and security (2026-11-26)
+
+Report: [QA_AND_SECURITY_REPORT.md](QA_AND_SECURITY_REPORT.md).
+
+- **Migration 018** `018_new_accounts_start_inactive` (live): new Auth users get an inactive profile until an
+  administrator activates them. Rollback `Database/rollback/018_down.sql`. The dev seed activates its sample accounts.
+- **Migration 019** `019_student_visibility_performance` (live): `profiles_read` and `students_read` evaluate the
+  same rules once per query (`private.can_view_all_students`, `can_view_some_students`,
+  `scoped_visible_student_ids`). Equivalence test: `Database/tests/100_visibility_equivalence.sql`. Rollback `019_down.sql`.
+- **Migration 020** `020_service_role_obligation_helper` (live): service_role may execute
+  `private.obligation_applies` (read-only). Rollback `020_down.sql`.
+- Backend: remittance candidates endpoint and batches default to the officer's class; LEFT JOINs + name filling so
+  RLS on the record decides list visibility (cashier fix); 503 `AUTH_UNAVAILABLE` for key-server outages; the assistant
+  refuses inactive accounts; new security, AI safety and load tests.
+- Frontend: "account not active yet" screen; class-scoped student picker for remittances; configurable map tiles.
+- A personal cloud environment "CampusServe" was created for this work; it allows `iafcgxwckoelhmfaddzp.supabase.co`
+  and package registries.
+
 ## Phase 2 — Backend and frontend (2026-11-26)
 
 - **Backend** (`Backend/`): Express 5 + TypeScript REST API, 161 endpoints across 16 modules; Supabase JWT

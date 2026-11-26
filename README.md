@@ -11,9 +11,10 @@ actual process and preserving each organization's and office's authority.
 |---|---|---|
 | 1 | Supabase database: schema, business rules, RLS, seed, tests, documentation | **Done** — applied to Supabase project `iafcgxwckoelhmfaddzp` and verified |
 | 1 (extension) | AI, automation and advanced GIS database foundation | **Done** — migrations 011–016 applied and verified (274 SQL checks locally; new suites also live) |
+| 2–3 fixes | Migrations 017–020 (error helper grant, inactive sign-ups, visibility performance, remittance helper) | **Applied live and verified** |
 | 2 | Backend (Node.js, Express, TypeScript): 161 REST endpoints, worker | **Built and tested locally** (80 integration tests). Not deployed |
 | 2 | Frontend (React, Vite, TypeScript, Tailwind, Radix): public site and six workspaces | **Built and tested locally** (unit tests, 45-page browser and accessibility sweep). Not deployed |
-| 3 | Integration, QA, security testing | Not started |
+| 3 | Integration, QA, security testing | **Done**: see [QA_AND_SECURITY_REPORT.md](Docs/QA_AND_SECURITY_REPORT.md). Migrations 018–020 applied live |
 | 4 | Deployment (Vercel, Render, Supabase) | Not started |
 | — | GCash / Maya / LANDBANK | **Not integrated.** The database is prepared; no provider is enabled. |
 | — | AI provider | **None connected.** Mock provider only. |
@@ -50,6 +51,7 @@ CampusServe/
 | [PROJECT_OVERVIEW.md](Docs/PROJECT_OVERVIEW.md) | what CampusServe is and who uses it |
 | [REQUIREMENTS.md](Docs/REQUIREMENTS.md) | requirements and their current status |
 | [API_DOCUMENTATION.md](Docs/API_DOCUMENTATION.md) | REST API: auth, errors, all endpoints |
+| [QA_AND_SECURITY_REPORT.md](Docs/QA_AND_SECURITY_REPORT.md) | Phase 3 findings, fixes and test results |
 | [INSTALLATION_GUIDE.md](Docs/INSTALLATION_GUIDE.md) | Supabase setup, running the backend and frontend locally |
 | [TESTING_GUIDE.md](Docs/TESTING_GUIDE.md) | running and reading the tests |
 | [CHANGELOG.md](Docs/CHANGELOG.md) | migration history, advisor findings |

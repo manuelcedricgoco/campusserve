@@ -159,7 +159,7 @@ export function RemittanceDetail() {
   const [received, setReceived] = useState('');
   const [reason, setReason] = useState('');
   const [finish, setFinish] = useState<'completed' | 'returned' | null>(null);
-  const inv = { invalidate: ['remittance', 'remittances', 'receipts'] };
+  const inv = { invalidate: ['remittance', 'remittances', 'receipts', 'students'] };
   const add = useAction(() => api.put(`/remittances/${id}/items`, { studentId: student!.id, amount: q.data!.obligation_amount }), { ...inv, success: 'Student added', onSuccess: () => setStudent(null) });
   const remove = useAction((itemId: string) => api.del(`/remittances/items/${itemId}`), { ...inv, success: 'Student removed' });
   const submit = useAction(() => api.post(`/remittances/${id}/submit`), { ...inv, success: 'Batch submitted to the treasurer' });
@@ -173,11 +173,11 @@ export function RemittanceDetail() {
         const isTreasurer = access.canIn('remittance.review', b.organization_id);
         const verifiedTotal = b.items.filter((i) => i.status === 'verified').reduce((a, i) => a + Number(i.amount), 0);
         return (<>
-          <PageHeader title={`Batch ${b.batch_number}`} description={`${b.organization_code}: ${b.obligation_name}`} back={<Button variant="link" asChild className="mb-2"><Link to="/org/remittances"><ArrowLeft className="h-4 w-4" aria-hidden />Remittances</Link></Button>} />
+          <PageHeader title={`Batch ${b.batch_number}`} description={`${b.organization_code}: ${b.obligation_name}${b.section || b.program_code ? `, class ${[b.program_code, b.section].filter(Boolean).join(' ')}` : ''}`} back={<Button variant="link" asChild className="mb-2"><Link to="/org/remittances"><ArrowLeft className="h-4 w-4" aria-hidden />Remittances</Link></Button>} />
           <Panel className="mb-6"><Facts items={[['Status', <Status key="s" value={b.status} />], ['Declared by class officer', money(b.declared_total)], ['Listed students', `${b.items.length} (${money(b.items_total)})`], ['Received by treasurer', b.received_total === null ? 'Not yet' : money(b.received_total)], ['Verified so far', money(verifiedTotal)], ['Returned because', b.return_reason]]} /></Panel>
           {b.declared_total !== b.items_total && <div className="mb-6"><Notice tone="warning" title="The listed students do not add up to the declared total">Declared {money(b.declared_total)}, listed {money(b.items_total)}.</Notice></div>}
           {isOfficer && ['draft', 'returned'].includes(b.status) && (
-            <Panel className="mb-6 space-y-3"><StudentPicker value={student} onChange={setStudent} label="Add a student who paid" />
+            <Panel className="mb-6 space-y-3"><StudentPicker value={student} onChange={setStudent} label="Add a student who paid" candidatesPath={`/remittances/${b.id}/candidates`} />
               <div className="flex flex-wrap gap-2"><Button disabled={!student} loading={add.isPending} onClick={() => add.mutate(undefined)}>Add for {money(b.obligation_amount)}</Button><Button variant="secondary" disabled={!b.items.length} loading={submit.isPending} onClick={() => submit.mutate(undefined)}>Submit to treasurer</Button></div>
             </Panel>
           )}

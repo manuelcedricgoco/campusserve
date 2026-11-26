@@ -44,11 +44,17 @@ export function FileUpload({ onFile, accept = ACCEPT, maxMb = 10, label = 'Attac
 export interface StudentOption { id: string; full_name: string; student_number: string; program_code: string; section: string }
 
 /** Search students the caller is allowed to see (server-side RLS). */
-export function StudentPicker({ value, onChange, label = 'Student' }: { value: StudentOption | null; onChange: (s: StudentOption | null) => void; label?: string }) {
+export function StudentPicker({ value, onChange, label = 'Student', candidatesPath }: {
+  value: StudentOption | null; onChange: (s: StudentOption | null) => void; label?: string;
+  /** Optional endpoint returning only eligible students (e.g. a remittance batch's class). */
+  candidatesPath?: string;
+}) {
   const [q, setQ] = useState('');
   const results = useQuery({
-    queryKey: ['students', q],
-    queryFn: () => api.page<StudentOption>('/students', { q, pageSize: 8 }),
+    queryKey: ['students', candidatesPath ?? 'all', q],
+    queryFn: async () => (candidatesPath
+      ? { data: await api.get<StudentOption[]>(candidatesPath, { q }) }
+      : api.page<StudentOption>('/students', { q, pageSize: 8 })),
     enabled: q.trim().length >= 2,
   });
   if (value) {

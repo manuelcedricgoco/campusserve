@@ -3,7 +3,7 @@ import { handler, idParams, optionalText, pagination, send, text } from '../../h
 import { rpcOne } from '../../db/database.js';
 import { forbidden, notFound } from '../../http/errors.js';
 import type { ModuleContext } from '../context.js';
-import { elevate, hasOffice, paged, singleFile } from '../shared.js';
+import { elevate, fillStudentNames, hasOffice, paged, singleFile } from '../shared.js';
 import { signed, storeUpload } from '../files.js';
 
 const REQUEST_STATUSES = ['submitted', 'in_review', 'ready_for_release', 'released', 'rejected', 'cancelled'] as const;
@@ -32,8 +32,8 @@ export function requestsModule({ deps, authed }: ModuleContext) {
       `select r.*, s.code as service_code, s.name as service_name, o.code as office_code, o.name as office_name,
               p.full_name as student_name, st.student_number
          from public.service_requests r join public.services s on s.id = r.service_id
-         join public.offices o on o.id = r.office_id join public.profiles p on p.id = r.student_id
-         join public.students st on st.profile_id = r.student_id
+         join public.offices o on o.id = r.office_id left join public.profiles p on p.id = r.student_id
+         left join public.students st on st.profile_id = r.student_id
         where (($1 = 'mine' and r.student_id = auth.uid()) or ($1 = 'office' and r.student_id <> auth.uid()))
           and ($2::uuid is null or r.office_id = $2) and ($3::text is null or r.status = $3)`,
       [query.scope, query.officeId ?? null, query.status ?? null], query, 'submitted_at desc'));
@@ -46,9 +46,10 @@ export function requestsModule({ deps, authed }: ModuleContext) {
         `select r.*, s.code as service_code, s.name as service_name, s.required_documents, o.name as office_name,
                 p.full_name as student_name, st.student_number
            from public.service_requests r join public.services s on s.id = r.service_id
-           join public.offices o on o.id = r.office_id join public.profiles p on p.id = r.student_id
-           join public.students st on st.profile_id = r.student_id where r.id = $1`, [params.id])).rows[0];
+           join public.offices o on o.id = r.office_id left join public.profiles p on p.id = r.student_id
+           left join public.students st on st.profile_id = r.student_id where r.id = $1`, [params.id])).rows[0];
       if (!request) return null;
+      await fillStudentNames(c, [request]);
       const history = (await c.query(`select * from public.request_status_history where request_id = $1 order by changed_at`, [params.id])).rows;
       const documents = (await c.query(
         `select id, file_name, mime_type, size_bytes, uploaded_by, created_at from public.request_documents where request_id = $1 order by created_at`,

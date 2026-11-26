@@ -4,17 +4,18 @@ import { rpc, rpcOne } from '../../db/database.js';
 import { AppError, notFound } from '../../http/errors.js';
 import type { DbClient } from '../../db/database.js';
 import type { ModuleContext } from '../context.js';
-import { paged } from '../shared.js';
+import { fillStudentNames, paged } from '../shared.js';
 
 async function loadClearance(c: DbClient, id: string) {
   const clearance = (await c.query(
     `select sc.*, p.full_name as student_name, st.student_number, pr.code as program_code, t.code as template_code,
             t.name as template_name, ay.code as academic_year
-       from public.student_clearances sc join public.profiles p on p.id = sc.student_id
-       join public.students st on st.profile_id = sc.student_id join public.programs pr on pr.id = st.program_id
+       from public.student_clearances sc left join public.profiles p on p.id = sc.student_id
+       left join public.students st on st.profile_id = sc.student_id left join public.programs pr on pr.id = st.program_id
        join public.clearance_templates t on t.id = sc.template_id join public.academic_years ay on ay.id = sc.academic_year_id
       where sc.id = $1`, [id])).rows[0];
   if (!clearance) return null;
+  await fillStudentNames(c, [clearance]);
   const approvals = (await c.query(
     `select a.*, o.code as organization_code, o.name as organization_name, f.code as office_code, f.name as office_name,
             pos.name as approver_position_name, actor.full_name as acted_by_name
@@ -91,8 +92,8 @@ export function clearanceModule({ deps, authed }: ModuleContext) {
               p.full_name as student_name, st.student_number, pr.code as program_code, st.section,
               (select count(*)::int from public.clearance_approvals a where a.student_clearance_id = sc.id) as total_steps,
               (select count(*)::int from public.clearance_approvals a where a.student_clearance_id = sc.id and a.status = 'approved') as approved_steps
-         from public.student_clearances sc join public.profiles p on p.id = sc.student_id
-         join public.students st on st.profile_id = sc.student_id join public.programs pr on pr.id = st.program_id
+         from public.student_clearances sc left join public.profiles p on p.id = sc.student_id
+         left join public.students st on st.profile_id = sc.student_id left join public.programs pr on pr.id = st.program_id
         where ($1 = 'all' or sc.student_id = auth.uid()) and ($2::text is null or sc.status = $2)
           and ($3::text is null or p.full_name ilike '%' || $3 || '%' or st.student_number ilike '%' || $3 || '%')`,
       [query.scope, query.status ?? null, query.q ?? null], query, 'initiated_at desc'));
@@ -103,12 +104,12 @@ export function clearanceModule({ deps, authed }: ModuleContext) {
   authed.get('/clearance/approvals/pending', handler({ query: pagination }, async (req, res, { query }) => {
     const result = await db.asUser(req.actor!, (c) => paged(c,
       `select a.id, a.step_key, a.step_name, a.sequence, a.status, a.remarks, a.updated_at,
-              sc.id as clearance_id, sc.clearance_number, p.full_name as student_name, st.student_number, pr.code as program_code, st.section,
+              sc.id as clearance_id, sc.clearance_number, sc.student_id, p.full_name as student_name, st.student_number, pr.code as program_code, st.section,
               not exists (select 1 from public.clearance_approvals e where e.student_clearance_id = a.student_clearance_id
                            and e.sequence < a.sequence and e.status <> 'approved') as is_actionable
          from public.clearance_approvals a join public.student_clearances sc on sc.id = a.student_clearance_id
-         join public.profiles p on p.id = sc.student_id join public.students st on st.profile_id = sc.student_id
-         join public.programs pr on pr.id = st.program_id
+         left join public.profiles p on p.id = sc.student_id left join public.students st on st.profile_id = sc.student_id
+         left join public.programs pr on pr.id = st.program_id
         where sc.status = 'in_progress' and a.status in ('pending', 'returned') and sc.student_id <> auth.uid()
           and private.holds_position(a.approver_position_code, a.organization_id, a.office_id, a.program_id)`,
       [], query, 'is_actionable desc, updated_at'));

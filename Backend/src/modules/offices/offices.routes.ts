@@ -15,8 +15,8 @@ export function officesModule({ deps, authed }: ModuleContext) {
   }, async (req, res, { query }) => {
     const result = await db.asUser(req.actor!, (c) => paged(c,
       `select g.*, p.full_name as student_name, st.student_number, pr.code as program_code
-         from public.guidance_records g join public.profiles p on p.id = g.student_id
-         join public.students st on st.profile_id = g.student_id join public.programs pr on pr.id = st.program_id
+         from public.guidance_records g left join public.profiles p on p.id = g.student_id
+         left join public.students st on st.profile_id = g.student_id left join public.programs pr on pr.id = st.program_id
         where g.academic_year_id = private.current_academic_year_id()
           and ($1::uuid is null or g.student_id = $1) and ($2::text is null or g.slip_status = $2)`,
       [query.studentId ?? null, query.slipStatus ?? null], query, 'updated_at desc'));
@@ -39,8 +39,8 @@ export function officesModule({ deps, authed }: ModuleContext) {
   }, async (req, res, { query }) => {
     const result = await db.asUser(req.actor!, (c) => paged(c,
       `select l.*, p.full_name as student_name, st.student_number, pr.code as program_code
-         from public.library_records l join public.profiles p on p.id = l.student_id
-         join public.students st on st.profile_id = l.student_id join public.programs pr on pr.id = st.program_id
+         from public.library_records l left join public.profiles p on p.id = l.student_id
+         left join public.students st on st.profile_id = l.student_id left join public.programs pr on pr.id = st.program_id
         where l.academic_year_id = private.current_academic_year_id()
           and ($1::uuid is null or l.student_id = $1) and ($2::text is null or l.slip_status = $2)`,
       [query.studentId ?? null, query.slipStatus ?? null], query, 'updated_at desc'));

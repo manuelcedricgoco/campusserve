@@ -70,7 +70,7 @@ export function queueModule({ deps, authed }: ModuleContext) {
   }, async (req, res, { params, query }) => {
     const result = await db.asUser(req.actor!, (c) => paged(c,
       `select ${ticketColumns}, p.full_name as student_name, st.student_number ${ticketJoins}
-         join public.profiles p on p.id = t.student_id join public.students st on st.profile_id = t.student_id
+         left join public.profiles p on p.id = t.student_id left join public.students st on st.profile_id = t.student_id
         where t.office_id = $1 and sl.slot_date = coalesce($2::date, (now() at time zone 'Asia/Manila')::date)
           and ($3::uuid is null or t.service_id = $3) and ($4::text is null or t.status = $4)`,
       [params.id, query.date ?? null, query.serviceId ?? null, query.status ?? null], query, 'start_time, queue_number'));

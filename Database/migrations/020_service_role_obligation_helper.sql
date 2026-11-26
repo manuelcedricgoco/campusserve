@@ -1,0 +1,12 @@
+-- =============================================================================
+-- 020 - Let the backend list students a remittance batch may include
+-- -----------------------------------------------------------------------------
+-- Found in Phase 3 role QA: a class officer could create a remittance batch but
+-- could not find any classmate to add (class officers have no students.view).
+-- The backend now offers GET /remittances/:id/candidates to the batch's own
+-- class officer or the organization's reviewer only. It lists students the fee
+-- applies to, using this read-only helper as the single source of that rule
+-- (upsert_remittance_batch_item re-checks it on every add).
+-- Read-only; no data access is granted to signed-in users. Rollback: 020_down.sql
+-- =============================================================================
+grant execute on function private.obligation_applies(uuid, uuid) to service_role;

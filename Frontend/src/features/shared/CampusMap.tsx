@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { useQuery } from '@tanstack/react-query';
 import { MapPinOff, Search } from 'lucide-react';
 import { api } from '@/lib/api';
+import { env } from '@/lib/env';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState, LoadingBlock } from '@/components/ui/states';
@@ -63,7 +64,7 @@ export function CampusMap({ publicView }: { publicView?: boolean }) {
       {map.data && withGeometry.length > 0 && (
         <div className="h-[60vh] min-h-[320px] overflow-hidden rounded-xl ring-1 ring-mist">
           <MapContainer center={[0, 0]} zoom={2} scrollWheelZoom className="h-full w-full">
-            <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <TileLayer attribution={env.mapAttribution} url={env.mapTileUrl} />
             <GeoJSON data={{ type: 'FeatureCollection', features: withGeometry } as GeoJSON.FeatureCollection}
               style={(f) => ({ color: '#0E5E6F', weight: 3, dashArray: f?.properties?.verification_status === 'verified' ? undefined : '6 6' })}
               pointToLayer={(f, latlng) => L.circleMarker(latlng, { radius: 8, color: '#0E5E6F', fillColor: f.properties?.verification_status === 'verified' ? '#F2A900' : '#fff', fillOpacity: 1, weight: 3 })}

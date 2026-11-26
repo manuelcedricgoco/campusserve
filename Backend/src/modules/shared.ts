@@ -4,6 +4,38 @@ import { forbidden } from '../http/errors.js';
 import type { Pagination } from '../http/http.js';
 import { pageMeta } from '../http/http.js';
 
+/**
+ * Fills student_name / student_number / program_code / section (and class_officer_name) on rows the caller
+ * may already see. List queries LEFT JOIN profiles and students so that RLS on the base record alone decides
+ * visibility (e.g. the cashier sees every payment without general students.view). Names for those rows are then
+ * read with the service role, limited to the ids in the rows, and the role is switched back.
+ */
+export async function fillStudentNames<T extends Record<string, any>>(c: DbClient, rows: T[]): Promise<T[]> {
+  const needs = (r: T, idKey: string, nameKey: string) => r[idKey] && (nameKey in r) && r[nameKey] == null;
+  const ids = [...new Set(rows.flatMap((r) => [needs(r, 'student_id', 'student_name') ? r.student_id : null, needs(r, 'class_officer_id', 'class_officer_name') ? r.class_officer_id : null]).filter(Boolean))];
+  if (ids.length === 0) return rows;
+  const role = (await c.query('select current_user as r')).rows[0].r as string;
+  await c.query('set local role service_role');
+  const found = (await c.query(
+    `select p.id, p.full_name, st.student_number, pr.code as program_code, st.section
+       from public.profiles p left join public.students st on st.profile_id = p.id left join public.programs pr on pr.id = st.program_id
+      where p.id = any($1::uuid[])`, [ids])).rows;
+  if (role === 'authenticated') await c.query('set local role authenticated');
+  const byId = new Map(found.map((f) => [f.id, f]));
+  for (const r of rows as Record<string, any>[]) {
+    const s = r.student_id ? byId.get(r.student_id) : undefined;
+    if (s) {
+      if ('student_name' in r && r.student_name == null) r.student_name = s.full_name;
+      if ('student_number' in r && r.student_number == null) r.student_number = s.student_number;
+      if ('program_code' in r && r.program_code == null) r.program_code = s.program_code;
+      if ('section' in r && r.section == null) r.section = s.section;
+    }
+    const o = r.class_officer_id ? byId.get(r.class_officer_id) : undefined;
+    if (o && 'class_officer_name' in r && r.class_officer_name == null) r.class_officer_name = o.full_name;
+  }
+  return rows;
+}
+
 /** Runs a SELECT with pagination and a total count. `orderBy` must be a fixed string from code. */
 export async function paged(c: DbClient, sql: string, params: unknown[], p: Pagination, orderBy: string) {
   const n = params.length;
@@ -13,6 +45,7 @@ export async function paged(c: DbClient, sql: string, params: unknown[], p: Pagi
   );
   const total = rows[0] ? Number(rows[0]._total) : 0;
   for (const r of rows) delete r._total;
+  await fillStudentNames(c, rows);
   return { rows, meta: pageMeta(p, total) };
 }
 

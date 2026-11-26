@@ -154,3 +154,15 @@ describe('community service resolution', () => {
     expect(after.status).toBe('voided');
   });
 });
+
+describe('cashier visibility', () => {
+  it('the cashier (payments.view_all, no students.view) sees every payment with the student name', async () => {
+    const total = (await t.sql<{ n: number }>(`select count(*)::int n from public.penalty_payments`))[0]!.n;
+    const r = expectStatus(await (await t.as(U.cashier)).get('/api/v1/payments?scope=all&pageSize=100'), 200);
+    expect(r.meta.total).toBe(total);
+    expect(total).toBeGreaterThan(0);
+    expect(r.data.every((p: { student_name: string | null }) => typeof p.student_name === 'string')).toBe(true);
+    // ...but still cannot browse students in general
+    expect(expectStatus(await (await t.as(U.cashier)).get('/api/v1/students?q=Sample'), 200).data).toHaveLength(0);
+  });
+});

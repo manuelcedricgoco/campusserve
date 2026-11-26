@@ -151,3 +151,36 @@ describe('clearance signer names', () => {
     expect(direct.body.data ?? []).toHaveLength(0); // still no general access to other profiles
   });
 });
+
+describe('remittance candidates for class officers', () => {
+  it('a new batch is scoped to the officer\'s class; candidates come only from that class; outsiders are refused', async () => {
+    const ssgFee = await idOf(t, `select id from public.receipt_obligations where code = 'SSG_FEE'`);
+    const officer = await t.as(U.classOfficer);
+    const batch = expectStatus(await officer.post('/api/v1/remittances').send({ obligationId: ssgFee, declaredTotal: 0 }), 201).data;
+    expect(batch.section).toBe('3A');
+    const cands = expectStatus(await officer.get(`/api/v1/remittances/${batch.id}/candidates`), 200).data as { section: string; full_name: string }[];
+    expect(cands.length).toBeGreaterThan(0);
+    expect(cands.every((c) => c.section === '3A')).toBe(true);
+    expect(Object.keys(cands[0]!).sort()).toEqual(['full_name', 'id', 'program_code', 'section', 'student_number']);
+    expect((await (await t.as(U.bsit1)).get(`/api/v1/remittances/${batch.id}/candidates`)).status).toBeGreaterThanOrEqual(403);
+    expect((await (await t.as(U.padcTreasurer)).get(`/api/v1/remittances/${batch.id}/candidates`)).status).toBeGreaterThanOrEqual(403);
+    expectStatus(await (await t.as(U.ssgTreasurer)).get(`/api/v1/remittances/${batch.id}/candidates?q=BSIT`), 200);
+    // A student outside the batch section is refused by the database even if submitted directly.
+    expect((await officer.put(`/api/v1/remittances/${batch.id}/items`).send({ studentId: U.beed, amount: 50 })).status).toBe(422);
+  });
+});
+
+describe('remittance items are visible to the class officer', () => {
+  it('lists the students the officer added, with names', async () => {
+    const ssgFee = await idOf(t, `select id from public.receipt_obligations where code = 'SSG_FEE'`);
+    const officer = await t.as(U.classOfficer);
+    const batch = expectStatus(await officer.post('/api/v1/remittances').send({ obligationId: ssgFee, declaredTotal: 50 }), 201).data;
+    const cand = expectStatus(await officer.get(`/api/v1/remittances/${batch.id}/candidates`), 200).data[0];
+    expectStatus(await officer.put(`/api/v1/remittances/${batch.id}/items`).send({ studentId: cand.id, amount: 50 }), 200);
+    const detail = expectStatus(await officer.get(`/api/v1/remittances/${batch.id}`), 200).data;
+    expect(detail.items).toHaveLength(1);
+    expect(detail.items[0].student_name).toBe(cand.full_name);
+    const again = expectStatus(await officer.get(`/api/v1/remittances/${batch.id}/candidates`), 200).data;
+    expect(again.some((x: { id: string }) => x.id === cand.id)).toBe(false);
+  });
+});

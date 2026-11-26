@@ -75,7 +75,7 @@ export function paymentsModule({ deps, authed, webhooks }: ModuleContext) {
               pp.verification_status, pp.verified_by, pp.verified_at, pp.verification_notes, pp.created_at,
               o.code as organization_code, p.full_name as student_name, st.student_number
          from public.penalty_payments pp join public.organizations o on o.id = pp.organization_id
-         join public.profiles p on p.id = pp.student_id join public.students st on st.profile_id = pp.student_id
+         left join public.profiles p on p.id = pp.student_id left join public.students st on st.profile_id = pp.student_id
         where ($1 = 'all' or pp.student_id = auth.uid()) and ($2::uuid is null or pp.organization_id = $2)
           and ($3::text is null or pp.status = $3) and ($4::text is null or pp.verification_status = $4)`,
       [query.scope, query.organizationId ?? null, query.status ?? null, query.verification ?? null], query, 'created_at desc'));

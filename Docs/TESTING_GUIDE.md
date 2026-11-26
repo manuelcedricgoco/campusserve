@@ -92,7 +92,7 @@ isolation), admin (self-lockout, audit, policy and template versioning), reports
 filtering, no leakage of staff-only sources, public mode, daily limit, suggestion-only classification), GIS
 (nothing invented, validation, routing only over verified data), automation (closed action list, worker).
 
-Result recorded 2026-11-26: **80 passed**, also with `TZ=Asia/Manila`.
+Result recorded 2026-11-26 (Phase 3): **108 passed** in 8 files, including `security.test.ts` and `ai-safety.test.ts`.
 
 ## Frontend tests
 
@@ -121,3 +121,14 @@ node tests/e2e/flows.mjs     # click-through: book a slot, send a request, sandb
 Results recorded 2026-11-26: page sweep **no problems** on 45 pages at 320, 768 and 1440 px; axe **0 violations**;
 flows: request, provider setting, report/verify/assess, sandbox payment, organization verification and access
 denial passed; slot booking passed on a fresh database (a rerun is refused by the one-active-reservation rule, as designed).
+
+## Phase 3 additions
+
+- `Database/tests/100_visibility_equivalence.sql`: every account's visible profiles and students equal the visibility
+  rule (guards RLS rewrites for speed).
+- `Frontend/tests/e2e/roles.mjs`: role-by-role QA through the UI (run on a freshly built and populated database:
+  run `cd Backend && npm test` first).
+- `Backend/tests-load/load.mjs <slot-id>`: burst reservations and sustained mixed reads (local only; needs synthetic
+  `LOAD-*` students, see the script header and QA report).
+
+Results: [QA_AND_SECURITY_REPORT.md](QA_AND_SECURITY_REPORT.md).

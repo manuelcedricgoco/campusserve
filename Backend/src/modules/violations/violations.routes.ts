@@ -3,7 +3,7 @@ import { handler, idParams, optionalText, pagination, send, text } from '../../h
 import { rpcOne } from '../../db/database.js';
 import { forbidden, notFound } from '../../http/errors.js';
 import type { ModuleContext } from '../context.js';
-import { dateString, elevate, hasOrg, paged, singleFile } from '../shared.js';
+import { dateString, elevate, fillStudentNames, hasOrg, paged, singleFile } from '../shared.js';
 import { signed, storeUpload } from '../files.js';
 
 const MAX_EVIDENCE_BYTES = 5 * 1024 * 1024;
@@ -44,7 +44,7 @@ export function violationsModule({ deps, authed }: ModuleContext) {
               p.full_name as student_name, st.student_number
          from public.violation_records v join public.organizations o on o.id = v.organization_id
          join public.violation_policies pol on pol.id = v.policy_id left join public.organization_events e on e.id = v.event_id
-         join public.profiles p on p.id = v.student_id join public.students st on st.profile_id = v.student_id
+         left join public.profiles p on p.id = v.student_id left join public.students st on st.profile_id = v.student_id
         where ($1 = 'all' or v.student_id = auth.uid()) and ($2::uuid is null or v.organization_id = $2)
           and ($3::uuid is null or v.student_id = $3) and ($4::text is null or v.status = $4)`,
       [query.scope, query.organizationId ?? null, query.studentId ?? null, query.status ?? null], query, 'created_at desc'));
@@ -56,9 +56,10 @@ export function violationsModule({ deps, authed }: ModuleContext) {
       const v = (await c.query(
         `select v.*, o.code as organization_code, pol.name as policy_name, p.full_name as student_name, st.student_number
            from public.violation_records v join public.organizations o on o.id = v.organization_id
-           join public.violation_policies pol on pol.id = v.policy_id join public.profiles p on p.id = v.student_id
-           join public.students st on st.profile_id = v.student_id where v.id = $1`, [params.id])).rows[0];
+           join public.violation_policies pol on pol.id = v.policy_id left join public.profiles p on p.id = v.student_id
+           left join public.students st on st.profile_id = v.student_id where v.id = $1`, [params.id])).rows[0];
       if (!v) return null;
+      await fillStudentNames(c, [v]);
       const reviews = (await c.query(`select * from public.violation_reviews where violation_record_id = $1 order by created_at`, [params.id])).rows;
       const disputes = (await c.query(`select * from public.violation_disputes where violation_record_id = $1 order by created_at`, [params.id])).rows;
       const evidence = (await c.query(
@@ -127,8 +128,8 @@ export function violationsModule({ deps, authed }: ModuleContext) {
               (select row_to_json(r) from public.penalty_resolutions r where r.assessment_id = a.id and r.status <> 'cancelled'
                 order by r.selected_at desc limit 1) as resolution
          from public.penalty_assessments a join public.organizations o on o.id = a.organization_id
-         join public.violation_policies pol on pol.id = a.policy_id join public.profiles p on p.id = a.student_id
-         join public.students st on st.profile_id = a.student_id
+         join public.violation_policies pol on pol.id = a.policy_id left join public.profiles p on p.id = a.student_id
+         left join public.students st on st.profile_id = a.student_id
         where ($1 = 'all' or a.student_id = auth.uid()) and ($2::uuid is null or a.organization_id = $2) and ($3::text is null or a.status = $3)`,
       [query.scope, query.organizationId ?? null, query.status ?? null], query, 'assessed_at desc'));
     send(res, result.rows, 200, result.meta);
@@ -184,7 +185,7 @@ export function violationsModule({ deps, authed }: ModuleContext) {
     const result = await db.asUser(req.actor!, (c) => paged(c,
       `select r.*, o.code as organization_code, p.full_name as student_name, st.student_number
          from public.community_service_records r join public.organizations o on o.id = r.organization_id
-         join public.profiles p on p.id = r.student_id join public.students st on st.profile_id = r.student_id
+         left join public.profiles p on p.id = r.student_id left join public.students st on st.profile_id = r.student_id
         where ($1::uuid is null or r.organization_id = $1) and ($2::text is null or r.status = $2)`,
       [query.organizationId ?? null, query.status ?? null], query, 'created_at desc'));
     send(res, result.rows, 200, result.meta);
