@@ -12,6 +12,9 @@ import { paymentsModule } from './payments/payments.routes.js';
 import { notificationsModule } from './notifications/notifications.routes.js';
 import { reportsModule } from './reports/reports.routes.js';
 import { adminModule } from './admin/admin.routes.js';
+import { aiModule } from './ai/ai.routes.js';
+import { gisModule } from './gis/gis.routes.js';
+import { automationModule } from './automation/automation.routes.js';
 
 /** Registers every feature module. */
 export function registerModules(ctx: ModuleContext) {
@@ -28,4 +31,7 @@ export function registerModules(ctx: ModuleContext) {
   notificationsModule(ctx);
   reportsModule(ctx);
   adminModule(ctx);
+  aiModule(ctx);
+  gisModule(ctx);
+  automationModule(ctx);
 }
