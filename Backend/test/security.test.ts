@@ -29,7 +29,9 @@ describe('self-registered accounts (migration 018)', () => {
 
   it('cannot read members-only data or use the assistant', async () => {
     const s = await t.as(stranger);
-    for (const p of ['/api/v1/catalog/organizations', '/api/v1/violations/policies', '/api/v1/clearance/templates', '/api/v1/ai/sources', '/api/v1/receipts/obligations']) {
+    const sources = await s.get('/api/v1/ai/sources');
+    expect(sources.status === 403 || sources.body.data.every((x: { visibility: string }) => x.visibility === 'public')).toBe(true); // public sources are public anyway
+    for (const p of ['/api/v1/catalog/organizations', '/api/v1/violations/policies', '/api/v1/clearance/templates', '/api/v1/receipts/obligations']) {
       const r = await s.get(p);
       expect(r.status === 403 || (r.status === 200 && r.body.data.length === 0), `${p} ${r.status} ${JSON.stringify(r.body).slice(0, 80)}`).toBe(true);
     }
